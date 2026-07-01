@@ -2,9 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const base = '/seda/'
+
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/seda/',
+  base,
 
   plugins: [
     react(),
@@ -17,19 +19,19 @@ export default defineConfig({
         description: 'A mobile-first musical ear-training exercise.',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         theme_color: '#245f63',
         background_color: '#f7f4ef',
         icons: [
           {
-            src: '/pwa-icons/icon.svg',
+            src: `${base}pwa-icons/icon.svg`,
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any',
           },
           {
-            src: '/pwa-icons/maskable-icon.svg',
+            src: `${base}pwa-icons/maskable-icon.svg`,
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'maskable',

@@ -7,6 +7,8 @@ type ComposerGuideProps = {
   reaction: ComposerReaction
 }
 
+const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path}`
+
 const composerDetails: Record<
   ComposerId,
   {
@@ -18,22 +20,22 @@ const composerDetails: Record<
   bach: {
     name: 'Bach',
     role: 'counterpoint coach',
-    portrait: '/composers/bach.png',
+    portrait: assetPath('composers/bach.png'),
   },
   beethoven: {
     name: 'Beethoven',
     role: 'stormy examiner',
-    portrait: '/composers/beethoven.png',
+    portrait: assetPath('composers/beethoven.png'),
   },
   mozart: {
     name: 'Mozart',
     role: 'bright-eyed tutor',
-    portrait: '/composers/mozart.png',
+    portrait: assetPath('composers/mozart.png'),
   },
   chopin: {
     name: 'Chopin',
     role: 'lyrical listener',
-    portrait: '/composers/chopin.png',
+    portrait: assetPath('composers/chopin.png'),
   },
 }
 

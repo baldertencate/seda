@@ -6,6 +6,7 @@ import type { Instrument } from './types'
 const bpm = 90
 const quarterNoteMs = 60_000 / bpm
 const eighthNoteMs = quarterNoteMs / 2
+const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path}`
 
 type Player = Tone.Sampler | Tone.PolySynth
 
@@ -39,7 +40,7 @@ function createSampler(instrument: Instrument) {
 
   return new Tone.Sampler({
     urls,
-    baseUrl: `/samples/${instrument}/`,
+    baseUrl: assetPath(`samples/${instrument}/`),
     attack: instrument === 'piano' ? 0 : 0.02,
     release: instrument === 'piano' ? 0.7 : 0.35,
     volume: instrument === 'piano' ? -4 : -7,
