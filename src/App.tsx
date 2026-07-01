@@ -197,7 +197,7 @@ function HomeScreen({
             <button
               key={category.id}
               type="button"
-              className="exercise-card"
+              className={`exercise-card exercise-card--${category.id}`}
               onClick={() => onSelectCategory(category.id)}
               aria-label={`Choose ${category.title} levels`}
             >
@@ -244,7 +244,7 @@ function LevelMenuScreen({
             <button
               key={level.id}
               type="button"
-              className="exercise-card level-card"
+              className={`exercise-card level-card level-card--${level.id}`}
               onClick={() => onSelectExercise(level.id)}
               aria-label={`Start ${category.title}, ${level.title}`}
             >
@@ -385,25 +385,36 @@ function ExerciseSession<
         />
 
         <section className="player-panel" aria-label="Phrase playback">
-          <div className="player-actions">
+          <div className={answer ? 'player-actions player-actions--answered' : 'player-actions'}>
             <button
               type="button"
-              className="button button--primary"
+              className={answer ? 'button button--secondary' : 'button button--primary'}
               onClick={handlePlay}
               disabled={isPlaying}
               aria-label="Play phrase"
             >
               {isPlaying ? 'Playing...' : 'Play melody'}
             </button>
-            <button
-              type="button"
-              className="button button--secondary"
-              onClick={handlePlay}
-              disabled={isPlaying}
-              aria-label="Play phrase again"
-            >
-              Play again
-            </button>
+            {answer ? (
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={handleNextQuestion}
+                aria-label="Next question"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={handlePlay}
+                disabled={isPlaying}
+                aria-label="Play phrase again"
+              >
+                Play again
+              </button>
+            )}
           </div>
           <p
             className={`feedback ${
@@ -440,13 +451,6 @@ function ExerciseSession<
           })}
         </section>
 
-        {answer ? (
-          <div className="next-row">
-            <button type="button" className="button" onClick={handleNextQuestion}>
-              Next question
-            </button>
-          </div>
-        ) : null}
       </section>
     </main>
   )
