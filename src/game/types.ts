@@ -58,3 +58,27 @@ export type RhythmQuestion = {
   options: RhythmPhrase[]
   correctOptionIndex: number
 }
+
+export type IntervalSize =
+  | 'unison'
+  | 'second'
+  | 'third'
+  | 'fourth'
+  | 'fifth'
+  | 'sixth'
+  | 'seventh'
+  | 'octave'
+
+export type IntervalOption = {
+  size: IntervalSize
+  label: string
+}
+
+export type IntervalQuestion = {
+  id: string
+  tonic: number
+  targetNote: number
+  target: IntervalOption
+  options: IntervalOption[]
+  correctOptionIndex: number
+}

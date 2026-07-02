@@ -109,6 +109,18 @@ export async function playMelody(melody: Melody, instrument: Instrument) {
   }
 }
 
+export async function playInterval(tonic: number, targetNote: number, instrument: Instrument) {
+  await Tone.start()
+
+  const player = getPlayer(instrument)
+  await Tone.loaded()
+
+  for (const midiNote of [tonic, targetNote]) {
+    player.triggerAttackRelease(MIDI_TO_NOTE_NAME[midiNote], '4n')
+    await wait(quarterNoteMs)
+  }
+}
+
 export async function playQuarterToneMelody(melody: QuarterToneMelody, instrument: Instrument) {
   await Tone.start()
 

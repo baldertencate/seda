@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
+  playInterval,
   playMelody,
   playOrnamentedMelody,
   playQuarterToneMelody,
@@ -10,6 +11,10 @@ import { ComposerGuide, type ComposerId } from './components/ComposerGuide'
 import { ScoreOption, type ScoreOptionScore } from './components/ScoreOption'
 import { StatusBar } from './components/StatusBar'
 import { generateChromaticQuestion, type ChromaticQuestion } from './game/generateChromaticQuestion'
+import {
+  generateIntervalQuestion,
+  intervalOptionKey,
+} from './game/generateIntervalQuestion'
 import { generateOrnamentQuestion } from './game/generateOrnamentQuestion'
 import {
   generateQuarterToneQuestion,
@@ -20,6 +25,8 @@ import { generateRhythmQuestion, rhythmPhraseKey } from './game/generateRhythmQu
 import { melodyKey, quarterToneMelodyKey } from './game/music'
 import type {
   Melody,
+  IntervalOption,
+  IntervalQuestion,
   OrnamentQuestion,
   OrnamentedMelody,
   Question,
@@ -32,8 +39,8 @@ import './styles.css'
 const maxQuestions = 10
 const maxMistakes = 3
 
-type ExerciseId = 'pitches' | 'pitches-2' | 'pitches-3' | 'ornaments' | 'rhythms'
-type ExerciseCategoryId = 'pitches' | 'ornaments' | 'rhythms'
+type ExerciseId = 'pitches' | 'pitches-2' | 'pitches-3' | 'ornaments' | 'rhythms' | 'intervals'
+type ExerciseCategoryId = 'pitches' | 'ornaments' | 'rhythms' | 'intervals'
 
 type AnswerState = {
   selectedIndex: number
@@ -78,6 +85,11 @@ const exerciseCategories: Array<{
     title: 'Recognize rhythms',
     description: 'Hear notes and rests of different lengths, then choose the matching rhythm.',
   },
+  {
+    id: 'intervals',
+    title: 'Recognize intervals',
+    description: 'Hear two notes and name the distance between them.',
+  },
 ]
 
 const exerciseLevels: Record<
@@ -117,6 +129,13 @@ const exerciseLevels: Record<
       id: 'rhythms',
       title: 'Level 1: Notes and rests',
       description: 'Match a one-bar rhythm made from notes and rests.',
+    },
+  ],
+  intervals: [
+    {
+      id: 'intervals',
+      title: 'Level 1: Natural intervals',
+      description: 'Hear one natural note followed by another and name the interval size.',
     },
   ],
 }
@@ -471,6 +490,216 @@ function ExerciseSession<
   )
 }
 
+function TextAnswerExerciseSession<
+  TQuestion extends { id: string; options: TOption[]; correctOptionIndex: number },
+  TOption,
+>({
+  title,
+  description,
+  idlePrompt,
+  createQuestion,
+  getOptionKey,
+  getOptionLabel,
+  playTarget,
+  composer,
+  instrument,
+  onBackHome,
+}: {
+  title: string
+  description: string
+  idlePrompt: string
+  createQuestion: () => TQuestion
+  getOptionKey: (option: TOption) => string
+  getOptionLabel: (option: TOption) => string
+  playTarget: (question: TQuestion, instrument: Instrument) => Promise<void>
+  composer: ComposerId
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  const [question, setQuestion] = useState<TQuestion>(() => createQuestion())
+  const [questionNumber, setQuestionNumber] = useState(1)
+  const [correctCount, setCorrectCount] = useState(0)
+  const [mistakes, setMistakes] = useState(0)
+  const [answer, setAnswer] = useState<AnswerState | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isFinished, setIsFinished] = useState(false)
+
+  const feedback = useMemo(() => {
+    if (!answer) {
+      return idlePrompt
+    }
+
+    return answer.wasCorrect ? 'Correct' : 'Not quite'
+  }, [answer, idlePrompt])
+
+  async function handlePlay() {
+    setIsPlaying(true)
+
+    try {
+      await playTarget(question, instrument)
+    } finally {
+      setIsPlaying(false)
+    }
+  }
+
+  function handleAnswer(selectedIndex: number) {
+    if (answer) {
+      return
+    }
+
+    const wasCorrect = selectedIndex === question.correctOptionIndex
+    const nextMistakes = wasCorrect ? mistakes : mistakes + 1
+    const nextCorrectCount = wasCorrect ? correctCount + 1 : correctCount
+
+    setAnswer({ selectedIndex, wasCorrect })
+    setCorrectCount(nextCorrectCount)
+    setMistakes(nextMistakes)
+
+    if (nextMistakes >= maxMistakes || questionNumber >= maxQuestions) {
+      setIsFinished(true)
+    }
+  }
+
+  function handleNextQuestion() {
+    setQuestion(createQuestion())
+    setQuestionNumber((current) => current + 1)
+    setAnswer(null)
+  }
+
+  function handleReset() {
+    setQuestion(createQuestion())
+    setQuestionNumber(1)
+    setCorrectCount(0)
+    setMistakes(0)
+    setAnswer(null)
+    setIsFinished(false)
+    setIsPlaying(false)
+  }
+
+  if (isFinished && answer) {
+    const endedEarly = mistakes >= maxMistakes
+
+    return (
+      <main className="app-shell">
+        <section className="result-panel" aria-labelledby="result-title">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <h1 id="result-title">Result</h1>
+          <p>
+            You answered {correctCount} out of {questionNumber} question
+            {questionNumber === 1 ? '' : 's'} correctly.
+          </p>
+          <p>{endedEarly ? 'The exercise ended after three mistakes.' : 'You reached question 10.'}</p>
+          <button type="button" className="button button--primary" onClick={handleReset}>
+            Play again
+          </button>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="app-shell">
+      <section className="exercise" aria-labelledby="app-title">
+        <header className="app-header app-header--with-back">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <div>
+            <h1 id="app-title">{title}</h1>
+            <p>
+              {description} Playing with {INSTRUMENT_LABELS[instrument].toLowerCase()}.
+            </p>
+          </div>
+        </header>
+
+        <StatusBar
+          questionNumber={questionNumber}
+          totalQuestions={maxQuestions}
+          correctCount={correctCount}
+          mistakes={mistakes}
+          maxMistakes={maxMistakes}
+        />
+
+        <ComposerGuide
+          composer={composer}
+          reaction={answer ? (answer.wasCorrect ? 'correct' : 'wrong') : 'idle'}
+        />
+
+        <section className="player-panel" aria-label="Interval playback">
+          <div className={answer ? 'player-actions player-actions--answered' : 'player-actions'}>
+            <button
+              type="button"
+              className={answer ? 'button button--secondary' : 'button button--primary'}
+              onClick={handlePlay}
+              disabled={isPlaying}
+              aria-label="Play interval"
+            >
+              {isPlaying ? 'Playing...' : 'Play interval'}
+            </button>
+            {answer ? (
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={handleNextQuestion}
+                aria-label="Next question"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={handlePlay}
+                disabled={isPlaying}
+                aria-label="Play interval again"
+              >
+                Play again
+              </button>
+            )}
+          </div>
+          <p
+            className={`feedback ${
+              answer ? (answer.wasCorrect ? 'feedback--correct' : 'feedback--wrong') : ''
+            }`}
+            aria-live="polite"
+          >
+            {feedback}
+          </p>
+        </section>
+
+        <section className="interval-options" aria-label="Answer options">
+          {question.options.map((option, index) => {
+            const isCorrectOption = index === question.correctOptionIndex
+            const isSelectedWrong = answer?.selectedIndex === index && !answer.wasCorrect
+            const stateClass = answer
+              ? isCorrectOption
+                ? 'interval-option--correct'
+                : isSelectedWrong
+                  ? 'interval-option--wrong'
+                  : ''
+              : ''
+
+            return (
+              <button
+                key={`${question.id}-${getOptionKey(option)}`}
+                type="button"
+                className={`interval-option ${stateClass}`}
+                disabled={Boolean(answer)}
+                onClick={() => handleAnswer(index)}
+                aria-label={`Option ${index + 1}: ${getOptionLabel(option)}`}
+              >
+                {getOptionLabel(option)}
+              </button>
+            )
+          })}
+        </section>
+      </section>
+    </main>
+  )
+}
+
 function RecognizePitchesExercise({
   instrument,
   onBackHome,
@@ -588,6 +817,31 @@ function RecognizeRhythmsExercise({
   )
 }
 
+function RecognizeIntervalsExercise({
+  instrument,
+  onBackHome,
+}: {
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  return (
+    <TextAnswerExerciseSession<IntervalQuestion, IntervalOption>
+      title="Recognize intervals"
+      description="Hear one note followed by another and name the interval size."
+      idlePrompt="Listen to the two notes, then choose the interval size."
+      createQuestion={generateIntervalQuestion}
+      getOptionKey={intervalOptionKey}
+      getOptionLabel={(option) => option.label}
+      playTarget={(question, selectedInstrument) =>
+        playInterval(question.tonic, question.targetNote, selectedInstrument)
+      }
+      composer="beethoven"
+      instrument={instrument}
+      onBackHome={onBackHome}
+    />
+  )
+}
+
 function App() {
   const [selectedCategory, setSelectedCategory] = useState<ExerciseCategoryId | null>(null)
   const [selectedExercise, setSelectedExercise] = useState<ExerciseId | null>(null)
@@ -628,6 +882,10 @@ function App() {
 
     if (selectedExercise === 'rhythms') {
       return <RecognizeRhythmsExercise instrument={instrument} onBackHome={handleBackHome} />
+    }
+
+    if (selectedExercise === 'intervals') {
+      return <RecognizeIntervalsExercise instrument={instrument} onBackHome={handleBackHome} />
     }
 
     return <RecognizePitchesExercise instrument={instrument} onBackHome={handleBackHome} />
