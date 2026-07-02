@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   playInterval,
   playMelody,
@@ -8,6 +8,7 @@ import {
 } from './audio/playMelody'
 import { INSTRUMENT_LABELS, type Instrument } from './audio/types'
 import { ComposerGuide, type ComposerId } from './components/ComposerGuide'
+import { MusicXmlOpeningScore } from './components/MusicXmlOpeningScore'
 import { ScoreOption, type ScoreOptionScore } from './components/ScoreOption'
 import { StatusBar } from './components/StatusBar'
 import { generateChromaticQuestion, type ChromaticQuestion } from './game/generateChromaticQuestion'
@@ -38,9 +39,270 @@ import './styles.css'
 
 const maxQuestions = 10
 const maxMistakes = 3
+const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path}`
+const audiblePeakThreshold = 0.015
+const audibleRmsThreshold = 0.004
 
-type ExerciseId = 'pitches' | 'pitches-2' | 'pitches-3' | 'ornaments' | 'rhythms' | 'intervals'
-type ExerciseCategoryId = 'pitches' | 'ornaments' | 'rhythms' | 'intervals'
+type ClassicalPieceId = 'beethoven-fur-elise' | 'bach-goldberg-aria' | 'bach-goldberg-variation-1'
+
+type ClassicalPieceConfig = {
+  id: ClassicalPieceId
+  title: string
+  composer: ComposerId
+  scorePath: string
+  recordingPath: string
+  pickupSeconds: number
+  barSeconds: number
+  bars: Array<{
+    measureNumber: string
+    pattern: string
+  }>
+}
+
+const classicalPieces: ClassicalPieceConfig[] = [
+  {
+    id: 'beethoven-fur-elise',
+    title: 'Fur Elise',
+    composer: 'beethoven',
+    scorePath: assetPath('exercises/classical-piano/beethoven-fur-elise/score.musicxml'),
+    recordingPath: assetPath('exercises/classical-piano/beethoven-fur-elise/recording.mp3'),
+    pickupSeconds: 0.42,
+    barSeconds: 176.613878 / 126,
+    bars: [
+      { measureNumber: '1', pattern: 'beethoven-opening-turn' },
+      { measureNumber: '2', pattern: 'beethoven-a-minor-arpeggio' },
+      { measureNumber: '4', pattern: 'beethoven-c-high-e' },
+      { measureNumber: '8', pattern: 'beethoven-a-quarter-pickup' },
+      { measureNumber: '16', pattern: 'beethoven-rising-scale' },
+      { measureNumber: '20', pattern: 'beethoven-b-rest-high-e' },
+      { measureNumber: '21', pattern: 'beethoven-rest-high-octave' },
+      { measureNumber: '22', pattern: 'beethoven-e-d-sharp-neighbor' },
+      { measureNumber: '47', pattern: 'beethoven-descending-scale' },
+      { measureNumber: '49', pattern: 'beethoven-c-quarter-d-sharp' },
+    ],
+  },
+  {
+    id: 'bach-goldberg-aria',
+    title: 'Goldberg Aria',
+    composer: 'bach',
+    scorePath: assetPath('exercises/classical-piano/bach-goldberg-aria/score.musicxml'),
+    recordingPath: assetPath('exercises/classical-piano/bach-goldberg-aria/recording.mp3'),
+    pickupSeconds: 0,
+    barSeconds: 299.544 / 64,
+    bars: [
+      { measureNumber: '1', pattern: 'aria-opening' },
+      { measureNumber: '2', pattern: 'aria-second-bar' },
+      { measureNumber: '3', pattern: 'aria-third-bar' },
+      { measureNumber: '4', pattern: 'aria-ornamented-run' },
+      { measureNumber: '5', pattern: 'aria-fifth-bar' },
+      { measureNumber: '6', pattern: 'aria-sixth-bar' },
+      { measureNumber: '7', pattern: 'aria-long-32nds' },
+      { measureNumber: '8', pattern: 'aria-eighth-bar' },
+      { measureNumber: '9', pattern: 'aria-ninth-bar' },
+      { measureNumber: '10', pattern: 'aria-tenth-bar' },
+    ],
+  },
+  {
+    id: 'bach-goldberg-variation-1',
+    title: 'Goldberg Variation 1',
+    composer: 'bach',
+    scorePath: assetPath('exercises/classical-piano/bach-goldberg-variation-1/score.musicxml'),
+    recordingPath: assetPath('exercises/classical-piano/bach-goldberg-variation-1/recording.mp3'),
+    pickupSeconds: 0,
+    barSeconds: 115.512 / 64,
+    bars: [
+      { measureNumber: '1', pattern: 'variation-opening' },
+      { measureNumber: '2', pattern: 'variation-second-bar' },
+      { measureNumber: '3', pattern: 'variation-third-bar' },
+      { measureNumber: '4', pattern: 'variation-fourth-bar' },
+      { measureNumber: '5', pattern: 'variation-fifth-bar' },
+      { measureNumber: '6', pattern: 'variation-sixth-bar' },
+      { measureNumber: '7', pattern: 'variation-seventh-bar' },
+      { measureNumber: '8', pattern: 'variation-eighth-bar' },
+      { measureNumber: '9', pattern: 'variation-ninth-bar' },
+      { measureNumber: '10', pattern: 'variation-tenth-bar' },
+    ],
+  },
+]
+
+type RecordingClip = {
+  context: AudioContext
+  buffer: AudioBuffer
+  audibleStartSeconds: number
+}
+
+type ClassicalBar = {
+  id: string
+  pieceId: ClassicalPieceId
+  pieceTitle: string
+  composer: ComposerId
+  scorePath: string
+  recordingPath: string
+  measureNumber: string
+  measureIndex: number
+  pickupSeconds: number
+  barSeconds: number
+  pattern: string
+}
+
+type ClassicalBarQuestion = {
+  id: string
+  target: ClassicalBar
+  options: ClassicalBar[]
+  correctOptionIndex: number
+}
+
+type ClassicalBarExerciseState = {
+  questionOrder: ClassicalBar[]
+  question: ClassicalBarQuestion
+}
+
+const classicalBars = classicalPieces.flatMap((piece) =>
+  piece.bars.map((bar) => ({
+    id: `${piece.id}-${bar.measureNumber}`,
+    pieceId: piece.id,
+    pieceTitle: piece.title,
+    composer: piece.composer,
+    scorePath: piece.scorePath,
+    recordingPath: piece.recordingPath,
+    measureNumber: bar.measureNumber,
+    measureIndex: Number(bar.measureNumber) - 1,
+    pickupSeconds: piece.pickupSeconds,
+    barSeconds: piece.barSeconds,
+    pattern: bar.pattern,
+  })),
+)
+
+const barsByPiece = classicalPieces.reduce<Record<ClassicalPieceId, ClassicalBar[]>>(
+  (barsById, piece) => {
+    barsById[piece.id] = classicalBars.filter((bar) => bar.pieceId === piece.id)
+
+    return barsById
+  },
+  {
+    'beethoven-fur-elise': [],
+    'bach-goldberg-aria': [],
+    'bach-goldberg-variation-1': [],
+  },
+)
+
+const recordingClipPromises: Partial<Record<ClassicalPieceId, Promise<RecordingClip>>> = {}
+
+async function loadClassicalClip(bar: ClassicalBar) {
+  const clipPromise = recordingClipPromises[bar.pieceId] ?? loadRecordingClip(bar.recordingPath)
+  recordingClipPromises[bar.pieceId] = clipPromise
+
+  return clipPromise
+}
+
+async function loadRecordingClip(src: string): Promise<RecordingClip> {
+  const context = new AudioContext()
+  const response = await fetch(src)
+
+  if (!response.ok) {
+    throw new Error('The recording could not be loaded.')
+  }
+
+  const buffer = await context.decodeAudioData(await response.arrayBuffer())
+
+  return {
+    context,
+    buffer,
+    audibleStartSeconds: findAudibleStart(buffer),
+  }
+}
+
+function findAudibleStart(buffer: AudioBuffer) {
+  const channelData = buffer.getChannelData(0)
+  const windowSize = Math.floor(buffer.sampleRate * 0.02)
+
+  for (let index = 0; index < channelData.length; index += windowSize) {
+    let peak = 0
+    let sumSquares = 0
+    const windowEnd = Math.min(index + windowSize, channelData.length)
+
+    for (let sampleIndex = index; sampleIndex < windowEnd; sampleIndex += 1) {
+      const value = Math.abs(channelData[sampleIndex])
+      peak = Math.max(peak, value)
+      sumSquares += value * value
+    }
+
+    const rms = Math.sqrt(sumSquares / Math.max(1, windowEnd - index))
+    if (peak > audiblePeakThreshold || rms > audibleRmsThreshold) {
+      return index / buffer.sampleRate
+    }
+  }
+
+  return 0
+}
+
+function stopAudioSource(source: AudioBufferSourceNode | null) {
+  try {
+    source?.stop()
+  } catch {
+    // The source may already have ended.
+  }
+}
+
+function shuffled<T>(items: T[]) {
+  return [...items].sort(() => Math.random() - 0.5)
+}
+
+function createClassicalBarQuestionOrder(pieceId: ClassicalPieceId) {
+  return shuffled(barsByPiece[pieceId]).slice(0, maxQuestions)
+}
+
+function createClassicalBarQuestion(target: ClassicalBar, optionPool: ClassicalBar[]): ClassicalBarQuestion {
+  const usedPatterns = new Set([target.pattern])
+  const distractors: ClassicalBar[] = []
+
+  for (const candidate of shuffled(optionPool)) {
+    const pattern = candidate.pattern
+
+    if (
+      candidate.id === target.id ||
+      usedPatterns.has(pattern) ||
+      distractors.length >= 2
+    ) {
+      continue
+    }
+
+    usedPatterns.add(pattern)
+    distractors.push(candidate)
+  }
+
+  const options = shuffled([target, ...distractors])
+
+  return {
+    id: `classical-bar-${target.id}-${options.map((option) => option.id).join('-')}`,
+    target,
+    options,
+    correctOptionIndex: options.findIndex((option) => option.id === target.id),
+  }
+}
+
+function createClassicalBarExerciseState(pieceId: ClassicalPieceId): ClassicalBarExerciseState {
+  const questionOrder = createClassicalBarQuestionOrder(pieceId)
+
+  return {
+    questionOrder,
+    question: createClassicalBarQuestion(questionOrder[0], barsByPiece[pieceId]),
+  }
+}
+
+function classicalBarOffset(bar: ClassicalBar) {
+  return bar.pickupSeconds + Math.max(0, bar.measureIndex) * bar.barSeconds
+}
+
+type ExerciseId =
+  | 'pitches'
+  | 'pitches-2'
+  | 'pitches-3'
+  | 'ornaments'
+  | 'rhythms'
+  | 'intervals'
+  | 'score-match'
+type ExerciseCategoryId = 'pitches' | 'ornaments' | 'rhythms' | 'intervals' | 'score-match'
 
 type AnswerState = {
   selectedIndex: number
@@ -90,6 +352,11 @@ const exerciseCategories: Array<{
     title: 'Recognize intervals',
     description: 'Hear two notes and name the distance between them.',
   },
+  {
+    id: 'score-match',
+    title: 'Score vs recording',
+    description: 'Compare a score excerpt with a real recording.',
+  },
 ]
 
 const exerciseLevels: Record<
@@ -136,6 +403,13 @@ const exerciseLevels: Record<
       id: 'intervals',
       title: 'Level 1: Natural intervals',
       description: 'Hear one natural note followed by another and name the interval size.',
+    },
+  ],
+  'score-match': [
+    {
+      id: 'score-match',
+      title: 'Classical piano bars',
+      description: 'Match one-bar excerpts from Beethoven and Bach to the correct score.',
     },
   ],
 }
@@ -842,6 +1116,290 @@ function RecognizeIntervalsExercise({
   )
 }
 
+function ScoreMatchExercise({ onBackHome }: { onBackHome: () => void }) {
+  const [selectedPieceId, setSelectedPieceId] = useState<ClassicalPieceId | null>(null)
+  const [barSession, setBarSession] = useState<ClassicalBarExerciseState | null>(null)
+  const [questionNumber, setQuestionNumber] = useState(1)
+  const [correctCount, setCorrectCount] = useState(0)
+  const [mistakes, setMistakes] = useState(0)
+  const [answer, setAnswer] = useState<AnswerState | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isFinished, setIsFinished] = useState(false)
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null)
+  const question = barSession?.question ?? null
+  const selectedPiece = classicalPieces.find((piece) => piece.id === selectedPieceId) ?? null
+  const feedback = useMemo(() => {
+    if (!answer) {
+      return 'Listen to the bar, then choose the matching score.'
+    }
+
+    return answer.wasCorrect ? 'Correct' : 'Not quite'
+  }, [answer])
+
+  useEffect(() => {
+    return () => {
+      stopAudioSource(sourceRef.current)
+    }
+  }, [])
+
+  async function handlePlay() {
+    if (!question) {
+      return
+    }
+
+    setIsPlaying(true)
+    setPlaybackError(null)
+    stopAudioSource(sourceRef.current)
+
+    try {
+      const clip = await loadClassicalClip(question.target)
+      const source = clip.context.createBufferSource()
+      const offsetSeconds = clip.audibleStartSeconds + classicalBarOffset(question.target)
+
+      if (clip.context.state !== 'running') {
+        await clip.context.resume()
+      }
+
+      source.buffer = clip.buffer
+      source.connect(clip.context.destination)
+      sourceRef.current = source
+      source.start(clip.context.currentTime, offsetSeconds, question.target.barSeconds)
+
+      await new Promise<void>((resolve) => {
+        const timeout = window.setTimeout(() => {
+          resolve()
+        }, question.target.barSeconds * 1000)
+
+        source.addEventListener(
+          'ended',
+          () => {
+            window.clearTimeout(timeout)
+            resolve()
+          },
+          { once: true },
+        )
+      })
+    } catch {
+      setPlaybackError('The recording could not be played.')
+    } finally {
+      setIsPlaying(false)
+    }
+  }
+
+  function handleAnswer(selectedIndex: number) {
+    if (answer || !question) {
+      return
+    }
+
+    const wasCorrect = selectedIndex === question.correctOptionIndex
+    setAnswer({ selectedIndex, wasCorrect })
+    setCorrectCount((current) => (wasCorrect ? current + 1 : current))
+    setMistakes((current) => (wasCorrect ? current : current + 1))
+
+    if (questionNumber >= maxQuestions) {
+      setIsFinished(true)
+    }
+  }
+
+  function handleNextQuestion() {
+    if (!selectedPieceId || !barSession) {
+      return
+    }
+
+    const nextQuestionNumber = questionNumber + 1
+    setQuestionNumber(nextQuestionNumber)
+    setBarSession((current) => ({
+      ...current!,
+      question: createClassicalBarQuestion(
+        current!.questionOrder[nextQuestionNumber - 1],
+        barsByPiece[selectedPieceId],
+      ),
+    }))
+    setAnswer(null)
+  }
+
+  function handleReset() {
+    if (!selectedPieceId) {
+      return
+    }
+
+    setBarSession(createClassicalBarExerciseState(selectedPieceId))
+    setQuestionNumber(1)
+    setCorrectCount(0)
+    setMistakes(0)
+    setAnswer(null)
+    setIsFinished(false)
+    setIsPlaying(false)
+    setPlaybackError(null)
+    stopAudioSource(sourceRef.current)
+  }
+
+  function handleSelectPiece(pieceId: ClassicalPieceId) {
+    setSelectedPieceId(pieceId)
+    setBarSession(createClassicalBarExerciseState(pieceId))
+    setQuestionNumber(1)
+    setCorrectCount(0)
+    setMistakes(0)
+    setAnswer(null)
+    setIsFinished(false)
+    setIsPlaying(false)
+    setPlaybackError(null)
+    stopAudioSource(sourceRef.current)
+  }
+
+  if (!selectedPiece || !barSession || !question) {
+    return (
+      <main className="app-shell">
+        <section className="exercise" aria-labelledby="app-title">
+          <header className="app-header app-header--with-back">
+            <button type="button" className="back-button" onClick={onBackHome}>
+              Home
+            </button>
+            <div>
+              <h1 id="app-title">Score vs recording</h1>
+              <p>Choose one piece, then match bars from that piece only.</p>
+            </div>
+          </header>
+
+          <section className="piece-options" aria-label="Choose a piece">
+            {classicalPieces.map((piece) => (
+              <button
+                key={piece.id}
+                type="button"
+                className="piece-option"
+                onClick={() => handleSelectPiece(piece.id)}
+              >
+                <span>{piece.title}</span>
+                <small>{piece.composer === 'bach' ? 'Johann Sebastian Bach' : 'Ludwig van Beethoven'}</small>
+              </button>
+            ))}
+          </section>
+        </section>
+      </main>
+    )
+  }
+
+  if (isFinished && answer) {
+    return (
+      <main className="app-shell">
+        <section className="result-panel" aria-labelledby="result-title">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <h1 id="result-title">Result</h1>
+          <p>
+            You matched {correctCount} out of {maxQuestions} bars correctly.
+          </p>
+          <button type="button" className="button button--primary" onClick={handleReset}>
+            Play again
+          </button>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="app-shell">
+      <section className="exercise" aria-labelledby="app-title">
+        <header className="app-header app-header--with-back">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <div>
+            <h1 id="app-title">Score vs recording</h1>
+            <p>Hear one bar from {selectedPiece.title} and choose the matching score.</p>
+          </div>
+        </header>
+
+        <StatusBar
+          questionNumber={questionNumber}
+          totalQuestions={maxQuestions}
+          correctCount={correctCount}
+          mistakes={mistakes}
+          maxMistakes={maxQuestions}
+        />
+
+        <ComposerGuide
+          composer={question.target.composer}
+          reaction={answer ? (answer.wasCorrect ? 'correct' : 'wrong') : 'idle'}
+        />
+
+        <section className="player-panel" aria-label="Recording playback">
+          <div className={answer ? 'player-actions player-actions--answered' : 'player-actions'}>
+            <button
+              type="button"
+              className={answer ? 'button button--secondary' : 'button button--primary'}
+              onClick={handlePlay}
+              disabled={isPlaying}
+              aria-label="Play bar recording"
+            >
+              {isPlaying ? 'Playing...' : 'Play recording'}
+            </button>
+            {answer ? (
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={handleNextQuestion}
+                aria-label="Next question"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={handlePlay}
+                disabled={isPlaying}
+                aria-label="Play bar recording again"
+              >
+                Play again
+              </button>
+            )}
+          </div>
+          <p
+            className={`feedback ${
+              answer ? (answer.wasCorrect ? 'feedback--correct' : 'feedback--wrong') : ''
+            }`}
+            aria-live="polite"
+          >
+            {feedback}
+            {playbackError ? ` ${playbackError}` : ''}
+          </p>
+        </section>
+
+        <section className="bar-score-options" aria-label="Score answer options">
+          {question.options.map((option, index) => {
+            const isCorrect = index === question.correctOptionIndex
+            const isWrongSelection = answer?.selectedIndex === index && !answer.wasCorrect
+            const stateClass = answer
+              ? isCorrect
+                ? 'bar-score-option--correct'
+                : isWrongSelection
+                  ? 'bar-score-option--wrong'
+                  : ''
+              : ''
+
+            return (
+              <button
+                key={`${question.id}-${option.id}`}
+                type="button"
+                className={`bar-score-option ${stateClass}`}
+                onClick={() => handleAnswer(index)}
+                disabled={Boolean(answer)}
+                aria-label={`Option ${index + 1}`}
+              >
+                <span className="bar-score-option__label">Option {index + 1}</span>
+                <MusicXmlOpeningScore src={option.scorePath} measureNumber={option.measureNumber} />
+              </button>
+            )
+          })}
+        </section>
+      </section>
+    </main>
+  )
+}
+
 function App() {
   const [selectedCategory, setSelectedCategory] = useState<ExerciseCategoryId | null>(null)
   const [selectedExercise, setSelectedExercise] = useState<ExerciseId | null>(null)
@@ -886,6 +1444,10 @@ function App() {
 
     if (selectedExercise === 'intervals') {
       return <RecognizeIntervalsExercise instrument={instrument} onBackHome={handleBackHome} />
+    }
+
+    if (selectedExercise === 'score-match') {
+      return <ScoreMatchExercise onBackHome={handleBackHome} />
     }
 
     return <RecognizePitchesExercise instrument={instrument} onBackHome={handleBackHome} />
