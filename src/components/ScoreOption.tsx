@@ -1,12 +1,25 @@
 import { useEffect, useRef } from 'react'
 import { Accidental, Beam, Formatter, Ornament, Renderer, Stave, StaveNote, Voice } from 'vexflow'
-import { melodyAccidentals, pitchForMidiNote } from '../game/music'
-import type { AccidentalMode, Melody, OrnamentPlacement, RhythmDuration, RhythmPhrase } from '../game/types'
+import {
+  melodyAccidentals,
+  pitchForMidiNote,
+  pitchForQuarterToneNote,
+  quarterToneMelodyAccidentals,
+} from '../game/music'
+import type {
+  AccidentalMode,
+  Melody,
+  OrnamentPlacement,
+  QuarterToneMelody,
+  RhythmDuration,
+  RhythmPhrase,
+} from '../game/types'
 
 type ScoreOptionState = 'idle' | 'correct' | 'wrong'
 
 export type ScoreOptionScore = {
   melody?: Melody
+  quarterToneMelody?: QuarterToneMelody
   ornament?: OrnamentPlacement
   rhythmPhrase?: RhythmPhrase
   accidentalMode?: AccidentalMode
@@ -43,6 +56,9 @@ export function ScoreOption({ score, optionNumber, state, disabled, onSelect }: 
     const isRhythmScore = Boolean(score.rhythmPhrase)
     const accidentalMode = score.accidentalMode ?? 'mixed'
     const melodyAccidentalMarks = score.melody ? melodyAccidentals(score.melody, accidentalMode) : []
+    const quarterToneAccidentalMarks = score.quarterToneMelody
+      ? quarterToneMelodyAccidentals(score.quarterToneMelody)
+      : []
     const notes = score.rhythmPhrase
       ? score.rhythmPhrase.map((event) => {
           const duration = `${vexflowDuration(event.duration)}${event.isRest ? 'r' : ''}`
@@ -52,24 +68,39 @@ export function ScoreOption({ score, optionNumber, state, disabled, onSelect }: 
             duration,
           })
         })
-      : score.melody!.map((midiNote, index) => {
-        const pitch = pitchForMidiNote(midiNote, accidentalMode)
-        const note = new StaveNote({
-          keys: [pitch.key],
-          duration: 'q',
-        })
+      : score.quarterToneMelody
+        ? score.quarterToneMelody.map((quarterToneNote, index) => {
+            const pitch = pitchForQuarterToneNote(quarterToneNote)
+            const note = new StaveNote({
+              keys: [pitch.key],
+              duration: 'q',
+            })
 
-      const accidental = melodyAccidentalMarks[index]
-      if (accidental) {
-        note.addModifier(new Accidental(accidental), 0)
-      }
+            const accidental = quarterToneAccidentalMarks[index]
+            if (accidental) {
+              note.addModifier(new Accidental(accidental), 0)
+            }
 
-      if (score.ornament?.noteIndex === index) {
-        note.addModifier(new Ornament(score.ornament.kind), 0)
-      }
+            return note
+          })
+        : score.melody!.map((midiNote, index) => {
+            const pitch = pitchForMidiNote(midiNote, accidentalMode)
+            const note = new StaveNote({
+              keys: [pitch.key],
+              duration: 'q',
+            })
 
-      return note
-    })
+            const accidental = melodyAccidentalMarks[index]
+            if (accidental) {
+              note.addModifier(new Accidental(accidental), 0)
+            }
+
+            if (score.ornament?.noteIndex === index) {
+              note.addModifier(new Ornament(score.ornament.kind), 0)
+            }
+
+            return note
+          })
 
     const beams = isRhythmScore ? Beam.generateBeams(notes, { beamRests: false }) : []
     const voice = new Voice({ numBeats: 4, beatValue: 4 }).addTickables(notes)

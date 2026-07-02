@@ -1,4 +1,4 @@
-import type { AccidentalMode, Melody } from './types'
+import type { AccidentalMode, Melody, QuarterToneMelody, QuarterTonePitch } from './types'
 
 export const DIATONIC_MIDI_NOTES = [60, 62, 64, 65, 67, 69, 71, 72] as const
 export const CHROMATIC_MIDI_NOTES = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72] as const
@@ -70,6 +70,16 @@ export function melodySoundKey(melody: readonly number[]) {
   return melody.join('-')
 }
 
+export function quarterToneMelodyKey(melody: QuarterToneMelody) {
+  return melody.map((pitch) => `${pitch.midi}:${pitch.cents}`).join('-')
+}
+
+export function quarterToneMelodiesEqual(left: QuarterToneMelody, right: QuarterToneMelody) {
+  return left.every(
+    (pitch, index) => pitch.midi === right[index].midi && pitch.cents === right[index].cents,
+  )
+}
+
 export function melodiesEqual(left: Melody, right: Melody) {
   return left.every((note, index) => note === right[index])
 }
@@ -86,11 +96,77 @@ export function pitchForMidiNote(midiNote: number, accidentalMode: AccidentalMod
   return MIDI_TO_VEXFLOW_PITCH[midiNote]
 }
 
+export function pitchForQuarterToneNote(note: QuarterTonePitch): VexflowPitch {
+  const pitch = MIDI_TO_VEXFLOW_PITCH[note.midi]
+
+  if (note.cents === -100) {
+    return {
+      key: pitch.staffPosition.replace('/', 'b/'),
+      staffPosition: pitch.staffPosition,
+      accidental: 'b',
+    }
+  }
+
+  if (note.cents === -50) {
+    return {
+      key: pitch.staffPosition,
+      staffPosition: pitch.staffPosition,
+      accidental: 'k',
+    }
+  }
+
+  if (note.cents === 50) {
+    return {
+      key: pitch.staffPosition,
+      staffPosition: pitch.staffPosition,
+      accidental: 'o',
+    }
+  }
+
+  if (note.cents === 100) {
+    return {
+      key: pitch.staffPosition.replace('/', '#/'),
+      staffPosition: pitch.staffPosition,
+      accidental: '#',
+    }
+  }
+
+  return {
+    key: pitch.staffPosition,
+    staffPosition: pitch.staffPosition,
+  }
+}
+
 export function melodyAccidentals(melody: readonly number[], accidentalMode: AccidentalMode = 'mixed') {
   const activeAccidentals = new Map<string, string>()
 
   return melody.map((midiNote) => {
     const pitch = pitchForMidiNote(midiNote, accidentalMode)
+    const activeAccidental = activeAccidentals.get(pitch.staffPosition)
+
+    if (pitch.accidental) {
+      if (activeAccidental === pitch.accidental) {
+        return undefined
+      }
+
+      activeAccidentals.set(pitch.staffPosition, pitch.accidental)
+      return pitch.accidental
+    }
+
+    if (activeAccidental && activeAccidental !== 'n') {
+      activeAccidentals.set(pitch.staffPosition, 'n')
+      return 'n'
+    }
+
+    return undefined
+  })
+}
+
+export function quarterToneMelodyAccidentals(melody: QuarterToneMelody) {
+  const activeAccidentals = new Map<string, string>()
+
+  return melody.map((note) => {
+    const pitch = pitchForQuarterToneNote(note)
     const activeAccidental = activeAccidentals.get(pitch.staffPosition)
 
     if (pitch.accidental) {

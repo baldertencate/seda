@@ -1,19 +1,29 @@
 import { useMemo, useState } from 'react'
-import { playMelody, playOrnamentedMelody, playRhythmPhrase } from './audio/playMelody'
+import {
+  playMelody,
+  playOrnamentedMelody,
+  playQuarterToneMelody,
+  playRhythmPhrase,
+} from './audio/playMelody'
 import { INSTRUMENT_LABELS, type Instrument } from './audio/types'
 import { ComposerGuide, type ComposerId } from './components/ComposerGuide'
 import { ScoreOption, type ScoreOptionScore } from './components/ScoreOption'
 import { StatusBar } from './components/StatusBar'
 import { generateChromaticQuestion, type ChromaticQuestion } from './game/generateChromaticQuestion'
 import { generateOrnamentQuestion } from './game/generateOrnamentQuestion'
+import {
+  generateQuarterToneQuestion,
+  type QuarterToneQuestion,
+} from './game/generateQuarterToneQuestion'
 import { generateQuestion } from './game/generateQuestion'
 import { generateRhythmQuestion, rhythmPhraseKey } from './game/generateRhythmQuestion'
-import { melodyKey } from './game/music'
+import { melodyKey, quarterToneMelodyKey } from './game/music'
 import type {
   Melody,
   OrnamentQuestion,
   OrnamentedMelody,
   Question,
+  QuarterToneMelody,
   RhythmPhrase,
   RhythmQuestion,
 } from './game/types'
@@ -22,7 +32,7 @@ import './styles.css'
 const maxQuestions = 10
 const maxMistakes = 3
 
-type ExerciseId = 'pitches' | 'pitches-2' | 'ornaments' | 'rhythms'
+type ExerciseId = 'pitches' | 'pitches-2' | 'pitches-3' | 'ornaments' | 'rhythms'
 type ExerciseCategoryId = 'pitches' | 'ornaments' | 'rhythms'
 
 type AnswerState = {
@@ -89,6 +99,11 @@ const exerciseLevels: Record<
       title: 'Level 2: Sharps and flats',
       description: 'Chromatic melodies with accidentals, without mixing sharps and flats.',
     },
+    {
+      id: 'pitches-3',
+      title: 'Level 3: Koron and sori',
+      description: 'Quarter-tone melodies using half-flats, half-sharps, and full accidentals.',
+    },
   ],
   ornaments: [
     {
@@ -110,7 +125,7 @@ function InstrumentSelector({ instrument, onChange }: InstrumentSelectorProps) {
   return (
     <fieldset className="instrument-selector" aria-label="Instrument">
       <legend>Instrument</legend>
-      {(['piano', 'flute'] as const).map((option) => (
+      {(['piano', 'flute', 'setar'] as const).map((option) => (
         <button
           key={option}
           type="button"
@@ -502,6 +517,31 @@ function RecognizePitchesTwoExercise({
   )
 }
 
+function RecognizePitchesThreeExercise({
+  instrument,
+  onBackHome,
+}: {
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  return (
+    <ExerciseSession<QuarterToneQuestion, QuarterToneMelody>
+      title="Recognize pitches 3"
+      description="Match the quarter-tone melody you hear to the score."
+      idlePrompt="Listen for koron, sori, sharps, and flats, then choose the matching score."
+      createQuestion={generateQuarterToneQuestion}
+      getOptionKey={quarterToneMelodyKey}
+      getOptionScore={(quarterToneMelody) => ({ quarterToneMelody })}
+      playTarget={(question, selectedInstrument) =>
+        playQuarterToneMelody(question.target, selectedInstrument)
+      }
+      composer="bach"
+      instrument={instrument}
+      onBackHome={onBackHome}
+    />
+  )
+}
+
 function RecognizeOrnamentsExercise({
   instrument,
   onBackHome,
@@ -580,6 +620,10 @@ function App() {
 
     if (selectedExercise === 'pitches-2') {
       return <RecognizePitchesTwoExercise instrument={instrument} onBackHome={handleBackHome} />
+    }
+
+    if (selectedExercise === 'pitches-3') {
+      return <RecognizePitchesThreeExercise instrument={instrument} onBackHome={handleBackHome} />
     }
 
     if (selectedExercise === 'rhythms') {

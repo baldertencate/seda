@@ -1,6 +1,13 @@
 import * as Tone from 'tone'
 import { MIDI_TO_NOTE_NAME, shiftDiatonic } from '../game/music'
-import type { Melody, OrnamentKind, OrnamentedMelody, RhythmPhrase } from '../game/types'
+import type {
+  Melody,
+  OrnamentKind,
+  OrnamentedMelody,
+  QuarterToneMelody,
+  QuarterTonePitch,
+  RhythmPhrase,
+} from '../game/types'
 import type { Instrument } from './types'
 
 const bpm = 90
@@ -9,41 +16,53 @@ const eighthNoteMs = quarterNoteMs / 2
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path}`
 
 type Player = Tone.Sampler | Tone.PolySynth
+type OrnamentPlaybackEvent = {
+  note: number
+  durationMs: number
+  velocity: number
+}
 
 const players: Partial<Record<Instrument, Player>> = {}
 
 function createSampler(instrument: Instrument) {
   const reverb = new Tone.Reverb({
-    decay: instrument === 'piano' ? 1.4 : 2.2,
-    wet: instrument === 'piano' ? 0.1 : 0.16,
+    decay: instrument === 'piano' ? 1.4 : instrument === 'setar' ? 1.6 : 2.2,
+    wet: instrument === 'piano' ? 0.1 : instrument === 'setar' ? 0.08 : 0.16,
   }).toDestination()
 
-  const urls: Record<string, string> =
-    instrument === 'piano'
-      ? {
-          C4: 'C4.mp3',
-          D4: 'D4.mp3',
-          E4: 'E4.mp3',
-          F4: 'F4.mp3',
-          G4: 'G4.mp3',
-          A4: 'A4.mp3',
-          B4: 'B4.mp3',
-          C5: 'C5.mp3',
-        }
-      : {
-          C4: 'C4.mp3',
-          E4: 'E4.mp3',
-          A4: 'A4.mp3',
-          C5: 'C5.mp3',
-          E5: 'E5.mp3',
-        }
+  const urlsByInstrument: Record<Instrument, Record<string, string>> = {
+    piano: {
+      C4: 'C4.mp3',
+      D4: 'D4.mp3',
+      E4: 'E4.mp3',
+      F4: 'F4.mp3',
+      G4: 'G4.mp3',
+      A4: 'A4.mp3',
+      B4: 'B4.mp3',
+      C5: 'C5.mp3',
+    },
+    flute: {
+      C4: 'C4.mp3',
+      E4: 'E4.mp3',
+      A4: 'A4.mp3',
+      C5: 'C5.mp3',
+      E5: 'E5.mp3',
+    },
+    setar: {
+      C4: 'C4.wav',
+      E4: 'E4.wav',
+      A4: 'A4.wav',
+      C5: 'C5.wav',
+      E5: 'E5.wav',
+    },
+  }
 
   return new Tone.Sampler({
-    urls,
+    urls: urlsByInstrument[instrument],
     baseUrl: assetPath(`samples/${instrument}/`),
-    attack: instrument === 'piano' ? 0 : 0.02,
-    release: instrument === 'piano' ? 0.7 : 0.35,
-    volume: instrument === 'piano' ? -4 : -7,
+    attack: instrument === 'flute' ? 0.02 : 0,
+    release: instrument === 'piano' ? 0.7 : instrument === 'setar' ? 0.65 : 0.35,
+    volume: instrument === 'piano' ? -4 : instrument === 'setar' ? -6 : -7,
   }).connect(reverb)
 }
 
@@ -74,6 +93,10 @@ function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
+function frequencyForQuarterTonePitch(pitch: QuarterTonePitch) {
+  return 440 * 2 ** ((pitch.midi + pitch.cents / 100 - 69) / 12)
+}
+
 export async function playMelody(melody: Melody, instrument: Instrument) {
   await Tone.start()
 
@@ -86,19 +109,51 @@ export async function playMelody(melody: Melody, instrument: Instrument) {
   }
 }
 
-function ornamentNotes(note: number, kind: OrnamentKind) {
+export async function playQuarterToneMelody(melody: QuarterToneMelody, instrument: Instrument) {
+  await Tone.start()
+
+  const player = getPlayer(instrument)
+  await Tone.loaded()
+
+  for (const pitch of melody) {
+    player.triggerAttackRelease(frequencyForQuarterTonePitch(pitch), '4n')
+    await wait(quarterNoteMs)
+  }
+}
+
+function ornamentPlaybackEvents(note: number, kind: OrnamentKind): OrnamentPlaybackEvent[] {
   const upper = shiftDiatonic(note, 1)
   const lower = shiftDiatonic(note, -1)
 
   switch (kind) {
-    case 'mordent':
-      return [note, upper, note]
-    case 'mordentInverted':
-      return [note, lower, note]
+    case 'mordent': {
+      return [
+        { note, durationMs: quarterNoteMs / 8, velocity: 0.74 },
+        { note: upper, durationMs: quarterNoteMs / 8, velocity: 0.68 },
+        { note, durationMs: (quarterNoteMs * 3) / 4, velocity: 0.86 },
+      ]
+    }
+    case 'mordentInverted': {
+      return [
+        { note, durationMs: quarterNoteMs / 8, velocity: 0.74 },
+        { note: lower, durationMs: quarterNoteMs / 8, velocity: 0.68 },
+        { note, durationMs: (quarterNoteMs * 3) / 4, velocity: 0.86 },
+      ]
+    }
     case 'turn':
-      return [upper, note, lower, note]
+      return [
+        { note: upper, durationMs: quarterNoteMs / 8, velocity: 0.66 },
+        { note, durationMs: quarterNoteMs / 8, velocity: 0.7 },
+        { note: lower, durationMs: quarterNoteMs / 8, velocity: 0.66 },
+        { note, durationMs: (quarterNoteMs * 5) / 8, velocity: 0.86 },
+      ]
     case 'turnInverted':
-      return [lower, note, upper, note]
+      return [
+        { note: lower, durationMs: quarterNoteMs / 8, velocity: 0.66 },
+        { note, durationMs: quarterNoteMs / 8, velocity: 0.7 },
+        { note: upper, durationMs: quarterNoteMs / 8, velocity: 0.66 },
+        { note, durationMs: (quarterNoteMs * 5) / 8, velocity: 0.86 },
+      ]
   }
 }
 
@@ -115,12 +170,16 @@ export async function playOrnamentedMelody(score: OrnamentedMelody, instrument: 
       continue
     }
 
-    const notes = ornamentNotes(midiNote, score.ornament.kind)
-    const ornamentNoteMs = quarterNoteMs / notes.length
+    const events = ornamentPlaybackEvents(midiNote, score.ornament.kind)
 
-    for (const note of notes) {
-      player.triggerAttackRelease(MIDI_TO_NOTE_NAME[note], ornamentNoteMs / 1000)
-      await wait(ornamentNoteMs)
+    for (const event of events) {
+      player.triggerAttackRelease(
+        MIDI_TO_NOTE_NAME[event.note],
+        event.durationMs / 1000,
+        undefined,
+        event.velocity,
+      )
+      await wait(event.durationMs)
     }
   }
 }

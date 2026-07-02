@@ -1,5 +1,19 @@
 export type Melody = [number, number, number, number]
 
+export type QuarterToneOffset = -100 | -50 | 0 | 50 | 100
+
+export type QuarterTonePitch = {
+  midi: number
+  cents: QuarterToneOffset
+}
+
+export type QuarterToneMelody = [
+  QuarterTonePitch,
+  QuarterTonePitch,
+  QuarterTonePitch,
+  QuarterTonePitch,
+]
+
 export type Question = {
   id: string
   target: Melody
