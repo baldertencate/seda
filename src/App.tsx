@@ -715,6 +715,7 @@ function ExerciseSession<
   const [answer, setAnswer] = useState<AnswerState | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isFinished, setIsFinished] = useState(false)
+  const [showResults, setShowResults] = useState(false)
 
   const feedback = useMemo(() => {
     if (!answer) {
@@ -755,6 +756,11 @@ function ExerciseSession<
   }
 
   function handleNextQuestion() {
+    if (isFinished) {
+      setShowResults(true)
+      return
+    }
+
     setQuestion(createQuestion())
     setQuestionNumber((current) => current + 1)
     setAnswer(null)
@@ -767,10 +773,11 @@ function ExerciseSession<
     setMistakes(0)
     setAnswer(null)
     setIsFinished(false)
+    setShowResults(false)
     setIsPlaying(false)
   }
 
-  if (isFinished && answer) {
+  if (showResults) {
     const endedEarly = mistakes >= maxMistakes
 
     return (
@@ -837,9 +844,9 @@ function ExerciseSession<
                 type="button"
                 className="button button--primary"
                 onClick={handleNextQuestion}
-                aria-label="Next question"
+                aria-label={isFinished ? 'See results' : 'Next question'}
               >
-                Next
+                {isFinished ? 'See results' : 'Next'}
               </button>
             ) : (
               <button
@@ -928,6 +935,7 @@ function TextAnswerExerciseSession<
   const [answer, setAnswer] = useState<AnswerState | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isFinished, setIsFinished] = useState(false)
+  const [showResults, setShowResults] = useState(false)
 
   const feedback = useMemo(() => {
     if (!answer) {
@@ -968,6 +976,11 @@ function TextAnswerExerciseSession<
   }
 
   function handleNextQuestion() {
+    if (isFinished) {
+      setShowResults(true)
+      return
+    }
+
     setQuestion(createQuestion())
     setQuestionNumber((current) => current + 1)
     setAnswer(null)
@@ -980,10 +993,11 @@ function TextAnswerExerciseSession<
     setMistakes(0)
     setAnswer(null)
     setIsFinished(false)
+    setShowResults(false)
     setIsPlaying(false)
   }
 
-  if (isFinished && answer) {
+  if (showResults) {
     const endedEarly = mistakes >= maxMistakes
 
     return (
@@ -1052,9 +1066,9 @@ function TextAnswerExerciseSession<
                 type="button"
                 className="button button--primary"
                 onClick={handleNextQuestion}
-                aria-label="Next question"
+                aria-label={isFinished ? 'See results' : 'Next question'}
               >
-                Next
+                {isFinished ? 'See results' : 'Next'}
               </button>
             ) : (
               <button
@@ -1343,6 +1357,7 @@ function ScoreMatchExercise({ onBackHome }: { onBackHome: () => void }) {
   const [answer, setAnswer] = useState<AnswerState | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isFinished, setIsFinished] = useState(false)
+  const [showResults, setShowResults] = useState(false)
   const [playbackError, setPlaybackError] = useState<string | null>(null)
   const sourceRef = useRef<AudioBufferSourceNode | null>(null)
   const question = barSession?.question ?? null
@@ -1421,6 +1436,11 @@ function ScoreMatchExercise({ onBackHome }: { onBackHome: () => void }) {
   }
 
   function handleNextQuestion() {
+    if (isFinished) {
+      setShowResults(true)
+      return
+    }
+
     if (!selectedPieceId || !barSession) {
       return
     }
@@ -1448,6 +1468,7 @@ function ScoreMatchExercise({ onBackHome }: { onBackHome: () => void }) {
     setMistakes(0)
     setAnswer(null)
     setIsFinished(false)
+    setShowResults(false)
     setIsPlaying(false)
     setPlaybackError(null)
     stopAudioSource(sourceRef.current)
@@ -1461,6 +1482,7 @@ function ScoreMatchExercise({ onBackHome }: { onBackHome: () => void }) {
     setMistakes(0)
     setAnswer(null)
     setIsFinished(false)
+    setShowResults(false)
     setIsPlaying(false)
     setPlaybackError(null)
     stopAudioSource(sourceRef.current)
@@ -1498,7 +1520,7 @@ function ScoreMatchExercise({ onBackHome }: { onBackHome: () => void }) {
     )
   }
 
-  if (isFinished && answer) {
+  if (showResults) {
     return (
       <main className="app-shell">
         <section className="result-panel" aria-labelledby="result-title">
@@ -1559,9 +1581,9 @@ function ScoreMatchExercise({ onBackHome }: { onBackHome: () => void }) {
                 type="button"
                 className="button button--primary"
                 onClick={handleNextQuestion}
-                aria-label="Next question"
+                aria-label={isFinished ? 'See results' : 'Next question'}
               >
-                Next
+                {isFinished ? 'See results' : 'Next'}
               </button>
             ) : (
               <button
@@ -1627,6 +1649,7 @@ function ScrapedBarsExercise({ onBackHome }: { onBackHome: () => void }) {
   const [answer, setAnswer] = useState<AnswerState | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isFinished, setIsFinished] = useState(false)
+  const [showResults, setShowResults] = useState(false)
   const [playbackError, setPlaybackError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const sourceRef = useRef<AudioBufferSourceNode | null>(null)
@@ -1729,6 +1752,11 @@ function ScrapedBarsExercise({ onBackHome }: { onBackHome: () => void }) {
   }
 
   function handleNextQuestion() {
+    if (isFinished) {
+      setShowResults(true)
+      return
+    }
+
     if (!barSession) {
       return
     }
@@ -1762,6 +1790,7 @@ function ScrapedBarsExercise({ onBackHome }: { onBackHome: () => void }) {
     setMistakes(0)
     setAnswer(null)
     setIsFinished(false)
+    setShowResults(false)
     setIsPlaying(false)
     setPlaybackError(null)
     stopAudioSource(sourceRef.current)
@@ -1795,7 +1824,7 @@ function ScrapedBarsExercise({ onBackHome }: { onBackHome: () => void }) {
     )
   }
 
-  if (isFinished && answer) {
+  if (showResults) {
     return (
       <main className="app-shell">
         <section className="result-panel" aria-labelledby="result-title">
@@ -1856,9 +1885,9 @@ function ScrapedBarsExercise({ onBackHome }: { onBackHome: () => void }) {
                 type="button"
                 className="button button--primary"
                 onClick={handleNextQuestion}
-                aria-label="Next question"
+                aria-label={isFinished ? 'See results' : 'Next question'}
               >
-                Next
+                {isFinished ? 'See results' : 'Next'}
               </button>
             ) : (
               <button
