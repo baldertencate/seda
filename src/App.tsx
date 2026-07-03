@@ -44,6 +44,24 @@ const audiblePeakThreshold = 0.015
 const audibleRmsThreshold = 0.004
 
 type ClassicalPieceId = 'beethoven-fur-elise' | 'bach-goldberg-aria' | 'bach-goldberg-variation-1'
+type ScrapedBar = {
+  measureNumber: string
+  startSeconds: number
+  endSeconds: number
+  pattern: string
+}
+
+type ScrapedAlignmentMeasure = {
+  measure: number
+  start: number
+  end: number
+  duration?: number
+}
+
+type ScrapedAlignmentFile = {
+  exercise_measures?: ScrapedAlignmentMeasure[]
+  measures?: ScrapedAlignmentMeasure[]
+}
 
 type ClassicalPieceConfig = {
   id: ClassicalPieceId
@@ -125,6 +143,10 @@ const classicalPieces: ClassicalPieceConfig[] = [
   },
 ]
 
+const scrapedScorePath = assetPath('exercises/scraped/fur-elise-fixture/score.musicxml')
+const scrapedRecordingPath = assetPath('exercises/scraped/fur-elise-fixture/recording.mp3')
+const scrapedAlignmentPath = assetPath('exercises/scraped/fur-elise-fixture/alignment.json')
+
 type RecordingClip = {
   context: AudioContext
   buffer: AudioBuffer
@@ -157,6 +179,18 @@ type ClassicalBarExerciseState = {
   question: ClassicalBarQuestion
 }
 
+type ScrapedBarQuestion = {
+  id: string
+  target: ScrapedBar
+  options: ScrapedBar[]
+  correctOptionIndex: number
+}
+
+type ScrapedBarExerciseState = {
+  questionOrder: ScrapedBar[]
+  question: ScrapedBarQuestion
+}
+
 const classicalBars = classicalPieces.flatMap((piece) =>
   piece.bars.map((bar) => ({
     id: `${piece.id}-${bar.measureNumber}`,
@@ -187,12 +221,42 @@ const barsByPiece = classicalPieces.reduce<Record<ClassicalPieceId, ClassicalBar
 )
 
 const recordingClipPromises: Partial<Record<ClassicalPieceId, Promise<RecordingClip>>> = {}
+let scrapedClipPromise: Promise<RecordingClip> | null = null
+let scrapedBarsPromise: Promise<ScrapedBar[]> | null = null
 
 async function loadClassicalClip(bar: ClassicalBar) {
   const clipPromise = recordingClipPromises[bar.pieceId] ?? loadRecordingClip(bar.recordingPath)
   recordingClipPromises[bar.pieceId] = clipPromise
 
   return clipPromise
+}
+
+async function loadScrapedClip() {
+  scrapedClipPromise ??= loadRecordingClip(scrapedRecordingPath)
+
+  return scrapedClipPromise
+}
+
+async function loadScrapedBars() {
+  scrapedBarsPromise ??= fetch(scrapedAlignmentPath).then(async (response) => {
+    if (!response.ok) {
+      throw new Error('The alignment could not be loaded.')
+    }
+
+    const alignment = (await response.json()) as ScrapedAlignmentFile
+    const measures = alignment.exercise_measures ?? alignment.measures ?? []
+
+    return measures
+      .filter((measure) => measure.end > measure.start)
+      .map((measure) => ({
+        measureNumber: String(measure.measure),
+        startSeconds: measure.start,
+        endSeconds: measure.end,
+        pattern: `scraped-${measure.measure}`,
+      }))
+  })
+
+  return scrapedBarsPromise
 }
 
 async function loadRecordingClip(src: string): Promise<RecordingClip> {
@@ -290,6 +354,50 @@ function createClassicalBarExerciseState(pieceId: ClassicalPieceId): ClassicalBa
   }
 }
 
+function createScrapedQuestionOrder(bars: ScrapedBar[]) {
+  return shuffled(bars).slice(0, maxQuestions)
+}
+
+function createScrapedBarQuestion(target: ScrapedBar, bars: ScrapedBar[]): ScrapedBarQuestion {
+  const usedPatterns = new Set([target.pattern])
+  const distractors: ScrapedBar[] = []
+
+  for (const candidate of shuffled(bars)) {
+    if (
+      candidate.measureNumber === target.measureNumber ||
+      usedPatterns.has(candidate.pattern) ||
+      distractors.length >= 3
+    ) {
+      continue
+    }
+
+    usedPatterns.add(candidate.pattern)
+    distractors.push(candidate)
+  }
+
+  const options = shuffled([target, ...distractors])
+
+  return {
+    id: `scraped-bar-${target.measureNumber}-${options
+      .map((option) => option.measureNumber)
+      .join('-')}`,
+    target,
+    options,
+    correctOptionIndex: options.findIndex(
+      (option) => option.measureNumber === target.measureNumber,
+    ),
+  }
+}
+
+function createScrapedBarExerciseState(bars: ScrapedBar[]): ScrapedBarExerciseState {
+  const questionOrder = createScrapedQuestionOrder(bars)
+
+  return {
+    questionOrder,
+    question: createScrapedBarQuestion(questionOrder[0], bars),
+  }
+}
+
 function classicalBarOffset(bar: ClassicalBar) {
   return bar.pickupSeconds + Math.max(0, bar.measureIndex) * bar.barSeconds
 }
@@ -302,6 +410,7 @@ type ExerciseId =
   | 'rhythms'
   | 'intervals'
   | 'score-match'
+  | 'scraped-bars'
 type ExerciseCategoryId = 'pitches' | 'ornaments' | 'rhythms' | 'intervals' | 'score-match'
 
 type AnswerState = {
@@ -410,6 +519,11 @@ const exerciseLevels: Record<
       id: 'score-match',
       title: 'Classical piano bars',
       description: 'Match one-bar excerpts from Beethoven and Bach to the correct score.',
+    },
+    {
+      id: 'scraped-bars',
+      title: 'Scraped aligned bars',
+      description: 'Use measured score/audio alignment from the scraping corpus.',
     },
   ],
 }
@@ -608,11 +722,13 @@ function ExerciseSession<
   }
 
   function handleAnswer(selectedIndex: number) {
-    if (answer) {
+    const currentQuestion = question
+
+    if (answer || !currentQuestion) {
       return
     }
 
-    const wasCorrect = selectedIndex === question.correctOptionIndex
+    const wasCorrect = selectedIndex === currentQuestion.correctOptionIndex
     const nextMistakes = wasCorrect ? mistakes : mistakes + 1
     const nextCorrectCount = wasCorrect ? correctCount + 1 : correctCount
 
@@ -817,11 +933,13 @@ function TextAnswerExerciseSession<
   }
 
   function handleAnswer(selectedIndex: number) {
-    if (answer) {
+    const currentQuestion = question
+
+    if (answer || !currentQuestion) {
       return
     }
 
-    const wasCorrect = selectedIndex === question.correctOptionIndex
+    const wasCorrect = selectedIndex === currentQuestion.correctOptionIndex
     const nextMistakes = wasCorrect ? mistakes : mistakes + 1
     const nextCorrectCount = wasCorrect ? correctCount + 1 : correctCount
 
@@ -1400,6 +1518,306 @@ function ScoreMatchExercise({ onBackHome }: { onBackHome: () => void }) {
   )
 }
 
+function ScrapedBarsExercise({ onBackHome }: { onBackHome: () => void }) {
+  const [availableBars, setAvailableBars] = useState<ScrapedBar[]>([])
+  const [barSession, setBarSession] = useState<ScrapedBarExerciseState | null>(null)
+  const [questionNumber, setQuestionNumber] = useState(1)
+  const [correctCount, setCorrectCount] = useState(0)
+  const [mistakes, setMistakes] = useState(0)
+  const [answer, setAnswer] = useState<AnswerState | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isFinished, setIsFinished] = useState(false)
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null)
+  const question = barSession?.question
+  const feedback = useMemo(() => {
+    if (!answer) {
+      return 'Listen to the aligned bar, then choose the matching score.'
+    }
+
+    return answer.wasCorrect ? 'Correct' : 'Not quite'
+  }, [answer])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    loadScrapedBars()
+      .then((bars) => {
+        if (isCancelled) {
+          return
+        }
+
+        if (bars.length < maxQuestions) {
+          throw new Error('Not enough aligned bars are available.')
+        }
+
+        setAvailableBars(bars)
+        setBarSession(createScrapedBarExerciseState(bars))
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setLoadError('The aligned bars could not be loaded.')
+        }
+      })
+
+    return () => {
+      isCancelled = true
+      stopAudioSource(sourceRef.current)
+    }
+  }, [])
+
+  async function handlePlay() {
+    if (!question) {
+      return
+    }
+
+    setIsPlaying(true)
+    setPlaybackError(null)
+    stopAudioSource(sourceRef.current)
+
+    try {
+      const clip = await loadScrapedClip()
+      const source = clip.context.createBufferSource()
+      const durationSeconds = question.target.endSeconds - question.target.startSeconds
+
+      if (clip.context.state !== 'running') {
+        await clip.context.resume()
+      }
+
+      source.buffer = clip.buffer
+      source.connect(clip.context.destination)
+      sourceRef.current = source
+      source.start(clip.context.currentTime, question.target.startSeconds, durationSeconds)
+
+      await new Promise<void>((resolve) => {
+        const timeout = window.setTimeout(() => {
+          resolve()
+        }, durationSeconds * 1000)
+
+        source.addEventListener(
+          'ended',
+          () => {
+            window.clearTimeout(timeout)
+            resolve()
+          },
+          { once: true },
+        )
+      })
+    } catch {
+      setPlaybackError('The recording could not be played.')
+    } finally {
+      setIsPlaying(false)
+    }
+  }
+
+  function handleAnswer(selectedIndex: number) {
+    const currentQuestion = question
+
+    if (answer || !currentQuestion) {
+      return
+    }
+
+    const wasCorrect = selectedIndex === currentQuestion.correctOptionIndex
+    setAnswer({ selectedIndex, wasCorrect })
+    setCorrectCount((current) => (wasCorrect ? current + 1 : current))
+    setMistakes((current) => (wasCorrect ? current : current + 1))
+
+    if (questionNumber >= maxQuestions) {
+      setIsFinished(true)
+    }
+  }
+
+  function handleNextQuestion() {
+    if (!barSession) {
+      return
+    }
+
+    const nextQuestionNumber = questionNumber + 1
+    setQuestionNumber(nextQuestionNumber)
+    setBarSession((current) => {
+      if (!current) {
+        return current
+      }
+
+      return {
+        ...current,
+        question: createScrapedBarQuestion(
+          current.questionOrder[nextQuestionNumber - 1],
+          availableBars,
+        ),
+      }
+    })
+    setAnswer(null)
+  }
+
+  function handleReset() {
+    if (availableBars.length < 4) {
+      return
+    }
+
+    setBarSession(createScrapedBarExerciseState(availableBars))
+    setQuestionNumber(1)
+    setCorrectCount(0)
+    setMistakes(0)
+    setAnswer(null)
+    setIsFinished(false)
+    setIsPlaying(false)
+    setPlaybackError(null)
+    stopAudioSource(sourceRef.current)
+  }
+
+  if (loadError) {
+    return (
+      <main className="app-shell">
+        <section className="result-panel" aria-labelledby="load-error-title">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <h1 id="load-error-title">Scraped aligned bars</h1>
+          <p>{loadError}</p>
+        </section>
+      </main>
+    )
+  }
+
+  if (!question) {
+    return (
+      <main className="app-shell">
+        <section className="result-panel" aria-labelledby="loading-title">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <h1 id="loading-title">Scraped aligned bars</h1>
+          <p>Loading aligned bars...</p>
+        </section>
+      </main>
+    )
+  }
+
+  if (isFinished && answer) {
+    return (
+      <main className="app-shell">
+        <section className="result-panel" aria-labelledby="result-title">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <h1 id="result-title">Result</h1>
+          <p>
+            You matched {correctCount} out of {maxQuestions} aligned bars correctly.
+          </p>
+          <button type="button" className="button button--primary" onClick={handleReset}>
+            Play again
+          </button>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="app-shell">
+      <section className="exercise" aria-labelledby="app-title">
+        <header className="app-header app-header--with-back">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <div>
+            <h1 id="app-title">Scraped aligned bars</h1>
+            <p>Hear one aligned bar and choose the matching score.</p>
+          </div>
+        </header>
+
+        <StatusBar
+          questionNumber={questionNumber}
+          totalQuestions={maxQuestions}
+          correctCount={correctCount}
+          mistakes={mistakes}
+          maxMistakes={maxQuestions}
+        />
+
+        <ComposerGuide
+          composer="beethoven"
+          reaction={answer ? (answer.wasCorrect ? 'correct' : 'wrong') : 'idle'}
+        />
+
+        <section className="player-panel" aria-label="Aligned bar playback">
+          <div className={answer ? 'player-actions player-actions--answered' : 'player-actions'}>
+            <button
+              type="button"
+              className={answer ? 'button button--secondary' : 'button button--primary'}
+              onClick={handlePlay}
+              disabled={isPlaying}
+              aria-label="Play aligned bar recording"
+            >
+              {isPlaying ? 'Playing...' : 'Play recording'}
+            </button>
+            {answer ? (
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={handleNextQuestion}
+                aria-label="Next question"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={handlePlay}
+                disabled={isPlaying}
+                aria-label="Play aligned bar recording again"
+              >
+                Play again
+              </button>
+            )}
+          </div>
+          <p
+            className={`feedback ${
+              answer ? (answer.wasCorrect ? 'feedback--correct' : 'feedback--wrong') : ''
+            }`}
+            aria-live="polite"
+          >
+            {feedback}
+            {playbackError ? ` ${playbackError}` : ''}
+          </p>
+        </section>
+
+        <section className="bar-score-options" aria-label="Score answer options">
+          {question.options.map((option, index) => {
+            const isCorrect = index === question.correctOptionIndex
+            const isWrongSelection = answer?.selectedIndex === index && !answer.wasCorrect
+            const stateClass = answer
+              ? isCorrect
+                ? 'bar-score-option--correct'
+                : isWrongSelection
+                  ? 'bar-score-option--wrong'
+                  : ''
+              : ''
+
+            return (
+              <button
+                key={`${question.id}-${option.measureNumber}`}
+                type="button"
+                className={`bar-score-option ${stateClass}`}
+                onClick={() => handleAnswer(index)}
+                disabled={Boolean(answer)}
+                aria-label={`Option ${index + 1}`}
+              >
+                <span className="bar-score-option__label">Option {index + 1}</span>
+                <MusicXmlOpeningScore
+                  src={scrapedScorePath}
+                  measureNumber={option.measureNumber}
+                />
+              </button>
+            )
+          })}
+        </section>
+      </section>
+    </main>
+  )
+}
+
 function App() {
   const [selectedCategory, setSelectedCategory] = useState<ExerciseCategoryId | null>(null)
   const [selectedExercise, setSelectedExercise] = useState<ExerciseId | null>(null)
@@ -1448,6 +1866,10 @@ function App() {
 
     if (selectedExercise === 'score-match') {
       return <ScoreMatchExercise onBackHome={handleBackHome} />
+    }
+
+    if (selectedExercise === 'scraped-bars') {
+      return <ScrapedBarsExercise onBackHome={handleBackHome} />
     }
 
     return <RecognizePitchesExercise instrument={instrument} onBackHome={handleBackHome} />
