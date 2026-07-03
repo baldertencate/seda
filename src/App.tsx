@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import {
   playInterval,
   playMelody,
   playOrnamentedMelody,
+  playPitchPair,
   playQuarterToneMelody,
   playRhythmPhrase,
 } from './audio/playMelody'
@@ -18,6 +19,10 @@ import {
 } from './game/generateIntervalQuestion'
 import { generateOrnamentQuestion } from './game/generateOrnamentQuestion'
 import {
+  generatePitchDirectionQuestion,
+  pitchDirectionOptionKey,
+} from './game/generatePitchDirectionQuestion'
+import {
   generateQuarterToneQuestion,
   type QuarterToneQuestion,
 } from './game/generateQuarterToneQuestion'
@@ -30,6 +35,8 @@ import type {
   IntervalQuestion,
   OrnamentQuestion,
   OrnamentedMelody,
+  PitchDirectionOption,
+  PitchDirectionQuestion,
   Question,
   QuarterToneMelody,
   RhythmPhrase,
@@ -409,6 +416,7 @@ type ExerciseId =
   | 'ornaments'
   | 'rhythms'
   | 'intervals'
+  | 'pitch-direction'
   | 'score-match'
   | 'scraped-bars'
 type ExerciseCategoryId = 'pitches' | 'ornaments' | 'rhythms' | 'intervals' | 'score-match'
@@ -509,8 +517,13 @@ const exerciseLevels: Record<
   ],
   intervals: [
     {
+      id: 'pitch-direction',
+      title: 'Level 1: Higher or lower',
+      description: 'Hear two close notes and decide whether the second note is higher or lower.',
+    },
+    {
       id: 'intervals',
-      title: 'Level 1: Natural intervals',
+      title: 'Level 2: Natural intervals',
       description: 'Hear one natural note followed by another and name the interval size.',
     },
   ],
@@ -893,6 +906,7 @@ function TextAnswerExerciseSession<
   playTarget,
   composer,
   instrument,
+  settingsNode,
   onBackHome,
 }: {
   title: string
@@ -904,6 +918,7 @@ function TextAnswerExerciseSession<
   playTarget: (question: TQuestion, instrument: Instrument) => Promise<void>
   composer: ComposerId
   instrument: Instrument
+  settingsNode?: ReactNode
   onBackHome: () => void
 }) {
   const [question, setQuestion] = useState<TQuestion>(() => createQuestion())
@@ -1013,6 +1028,8 @@ function TextAnswerExerciseSession<
           mistakes={mistakes}
           maxMistakes={maxMistakes}
         />
+
+        {settingsNode}
 
         <ComposerGuide
           composer={composer}
@@ -1228,6 +1245,89 @@ function RecognizeIntervalsExercise({
         playInterval(question.tonic, question.targetNote, selectedInstrument)
       }
       composer="beethoven"
+      instrument={instrument}
+      onBackHome={onBackHome}
+    />
+  )
+}
+
+function PitchDirectionExercise({
+  instrument,
+  onBackHome,
+}: {
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  const [minimumDifferenceCents, setMinimumDifferenceCents] = useState(50)
+  const [maximumDifferenceCents, setMaximumDifferenceCents] = useState(100)
+
+  function handleMinimumDifferenceChange(nextMinimum: number) {
+    setMinimumDifferenceCents(Math.min(nextMinimum, maximumDifferenceCents - 10))
+  }
+
+  function handleMaximumDifferenceChange(nextMaximum: number) {
+    setMaximumDifferenceCents(Math.max(nextMaximum, minimumDifferenceCents + 10))
+  }
+
+  return (
+    <TextAnswerExerciseSession<PitchDirectionQuestion, PitchDirectionOption>
+      key={`${minimumDifferenceCents}-${maximumDifferenceCents}`}
+      title="Higher or lower"
+      description="Hear two close notes and decide whether the second note moved up or down."
+      idlePrompt="Listen to both notes, then choose whether the second note is higher or lower."
+      createQuestion={() =>
+        generatePitchDirectionQuestion(
+          Math.random,
+          minimumDifferenceCents,
+          maximumDifferenceCents,
+        )
+      }
+      getOptionKey={pitchDirectionOptionKey}
+      getOptionLabel={(option) => option.label}
+      playTarget={(question, selectedInstrument) =>
+        playPitchPair(question.firstFrequency, question.secondFrequency, selectedInstrument)
+      }
+      settingsNode={
+        <section className="difficulty-control" aria-label="Difficulty">
+          <div className="difficulty-control__row">
+            <label htmlFor="minimum-difference">
+              Minimum difference
+              <strong>{minimumDifferenceCents} cents</strong>
+            </label>
+            <input
+              id="minimum-difference"
+              type="range"
+              min="10"
+              max={maximumDifferenceCents - 10}
+              step="10"
+              value={minimumDifferenceCents}
+              onChange={(event) => handleMinimumDifferenceChange(Number(event.target.value))}
+              aria-valuetext={`${minimumDifferenceCents} cents`}
+            />
+          </div>
+          <div className="difficulty-control__row">
+            <label htmlFor="maximum-difference">
+              Maximum difference
+              <strong>{maximumDifferenceCents} cents</strong>
+            </label>
+            <input
+              id="maximum-difference"
+              type="range"
+              min={minimumDifferenceCents + 10}
+              max="100"
+              step="10"
+              value={maximumDifferenceCents}
+              onChange={(event) => handleMaximumDifferenceChange(Number(event.target.value))}
+              aria-valuetext={`${maximumDifferenceCents} cents`}
+            />
+          </div>
+          <div className="difficulty-control__scale" aria-hidden="true">
+            <span>Harder</span>
+            <span>One semitone max</span>
+          </div>
+        </section>
+      }
+      composer="mozart"
       instrument={instrument}
       onBackHome={onBackHome}
     />
@@ -1858,6 +1958,10 @@ function App() {
 
     if (selectedExercise === 'rhythms') {
       return <RecognizeRhythmsExercise instrument={instrument} onBackHome={handleBackHome} />
+    }
+
+    if (selectedExercise === 'pitch-direction') {
+      return <PitchDirectionExercise instrument={instrument} onBackHome={handleBackHome} />
     }
 
     if (selectedExercise === 'intervals') {

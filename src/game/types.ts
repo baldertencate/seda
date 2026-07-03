@@ -82,3 +82,21 @@ export type IntervalQuestion = {
   options: IntervalOption[]
   correctOptionIndex: number
 }
+
+export type PitchDirection = 'higher' | 'lower'
+
+export type PitchDirectionOption = {
+  direction: PitchDirection
+  label: string
+}
+
+export type PitchDirectionQuestion = {
+  id: string
+  firstNote: number
+  firstFrequency: number
+  secondFrequency: number
+  centsDifference: number
+  target: PitchDirectionOption
+  options: PitchDirectionOption[]
+  correctOptionIndex: number
+}

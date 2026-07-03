@@ -121,6 +121,22 @@ export async function playInterval(tonic: number, targetNote: number, instrument
   }
 }
 
+export async function playPitchPair(
+  firstFrequency: number,
+  secondFrequency: number,
+  instrument: Instrument,
+) {
+  await Tone.start()
+
+  const player = getPlayer(instrument)
+  await Tone.loaded()
+
+  for (const frequency of [firstFrequency, secondFrequency]) {
+    player.triggerAttackRelease(frequency, '4n')
+    await wait(quarterNoteMs)
+  }
+}
+
 export async function playQuarterToneMelody(melody: QuarterToneMelody, instrument: Instrument) {
   await Tone.start()
 

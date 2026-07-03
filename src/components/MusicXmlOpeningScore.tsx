@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { Accidental, Beam, Dot, Formatter, Renderer, Stave, StaveNote, Voice } from 'vexflow'
 
 type MusicXmlNote = {
-  key: string
+  keys: string[]
   duration: string
-  accidental?: string
+  accidentals: Array<string | undefined>
   isRest: boolean
   dots: number
+  ticks: number
 }
 
 type MusicXmlOpeningScoreProps = {
@@ -20,6 +21,7 @@ type ParsedMeasure = {
     beats: number
     beatValue: number
   }
+  divisions: number
 }
 
 export function MusicXmlOpeningScore({ src, measureNumber }: MusicXmlOpeningScoreProps) {
@@ -79,13 +81,15 @@ export function MusicXmlOpeningScore({ src, measureNumber }: MusicXmlOpeningScor
 
     const staveNotes = measure.notes.map((musicXmlNote) => {
       const staveNote = new StaveNote({
-        keys: [musicXmlNote.isRest ? 'b/4' : musicXmlNote.key],
+        keys: musicXmlNote.isRest ? ['b/4'] : musicXmlNote.keys,
         duration: `${musicXmlNote.duration}${musicXmlNote.isRest ? 'r' : ''}`,
       })
 
-      if (musicXmlNote.accidental) {
-        staveNote.addModifier(new Accidental(musicXmlNote.accidental), 0)
-      }
+      musicXmlNote.accidentals.forEach((accidental, keyIndex) => {
+        if (accidental) {
+          staveNote.addModifier(new Accidental(accidental), keyIndex)
+        }
+      })
 
       for (let dotIndex = 0; dotIndex < musicXmlNote.dots; dotIndex += 1) {
         Dot.buildAndAttach([staveNote], { all: true })
@@ -136,22 +140,29 @@ function parseMeasure(xmlText: string, measureNumber: string): ParsedMeasure {
     return {
       notes: [],
       timeSignature: { beats: 4, beatValue: 4 },
+      divisions: 1,
     }
   }
 
   const timeSignature = inheritedTimeSignature(measures, measureIndex)
+  const divisions = inheritedDivisions(measures, measureIndex)
   const primaryVoice = measure.querySelector(':scope > note > voice')?.textContent ?? null
-  const notes = Array.from(measure.querySelectorAll(':scope > note'))
+  const notes = padMeasureNotes(
+    groupChordNotes(
+      Array.from(measure.querySelectorAll(':scope > note'))
     .filter((noteElement) => !noteElement.querySelector('grace'))
     .filter((noteElement) => {
       const voice = noteElement.querySelector('voice')?.textContent ?? primaryVoice
 
       return !primaryVoice || voice === primaryVoice
     })
-    .filter((noteElement) => noteElement.querySelector('type'))
-    .map(noteFromElement)
+        .filter((noteElement) => noteElement.querySelector('type')),
+      divisions,
+    ),
+    measureDurationTicks(timeSignature, divisions),
+  )
 
-  return { notes, timeSignature }
+  return { notes, timeSignature, divisions }
 }
 
 function inheritedTimeSignature(measures: Element[], measureIndex: number) {
@@ -170,22 +181,115 @@ function inheritedTimeSignature(measures: Element[], measureIndex: number) {
   return { beats: 4, beatValue: 4 }
 }
 
-function noteFromElement(noteElement: Element): MusicXmlNote {
+function inheritedDivisions(measures: Element[], measureIndex: number) {
+  for (let index = measureIndex; index >= 0; index -= 1) {
+    const divisions = measures[index].querySelector('attributes > divisions')?.textContent
+
+    if (divisions) {
+      return Number(divisions)
+    }
+  }
+
+  return 1
+}
+
+function groupChordNotes(noteElements: Element[], divisions: number): MusicXmlNote[] {
+  const notes: MusicXmlNote[] = []
+
+  for (const noteElement of noteElements) {
+    const isChordTone = Boolean(noteElement.querySelector('chord'))
+
+    if (isChordTone && notes.length > 0) {
+      addChordTone(notes[notes.length - 1], noteElement)
+      continue
+    }
+
+    notes.push(noteFromElement(noteElement, divisions))
+  }
+
+  return notes
+}
+
+function addChordTone(note: MusicXmlNote, noteElement: Element) {
+  if (note.isRest) {
+    return
+  }
+
+  note.keys.push(keyFromElement(noteElement))
+  note.accidentals.push(accidentalFromMusicXml(noteElement))
+}
+
+function padMeasureNotes(notes: MusicXmlNote[], targetTicks: number) {
+  const currentTicks = notes.reduce((total, note) => total + note.ticks, 0)
+  const remainingTicks = targetTicks - currentTicks
+
+  if (remainingTicks <= 0) {
+    return notes
+  }
+
+  return [...notes, ...restNotesForTicks(remainingTicks)]
+}
+
+function restNotesForTicks(ticks: number): MusicXmlNote[] {
+  const rests: MusicXmlNote[] = []
+  const durations = [
+    { ticks: 32, duration: 'w' },
+    { ticks: 16, duration: 'h' },
+    { ticks: 8, duration: 'q' },
+    { ticks: 4, duration: '8' },
+    { ticks: 2, duration: '16' },
+    { ticks: 1, duration: '32' },
+  ]
+  let remainingTicks = ticks
+
+  for (const duration of durations) {
+    while (remainingTicks >= duration.ticks) {
+      rests.push({
+        keys: ['b/4'],
+        duration: duration.duration,
+        accidentals: [],
+        isRest: true,
+        dots: 0,
+        ticks: duration.ticks,
+      })
+      remainingTicks -= duration.ticks
+    }
+  }
+
+  return rests
+}
+
+function measureDurationTicks(timeSignature: ParsedMeasure['timeSignature'], _divisions: number) {
+  return timeSignature.beats * (32 / timeSignature.beatValue)
+}
+
+function noteFromElement(noteElement: Element, divisions: number): MusicXmlNote {
   const type = noteElement.querySelector('type')?.textContent ?? 'quarter'
   const isRest = Boolean(noteElement.querySelector('rest'))
+  const accidental = accidentalFromMusicXml(noteElement)
+  const dots = noteElement.querySelectorAll('dot').length
+  const durationTicks = Number(noteElement.querySelector('duration')?.textContent ?? '0')
+
+  return {
+    keys: [keyFromElement(noteElement)],
+    duration: durationFromMusicXml(type),
+    accidentals: [accidental],
+    isRest,
+    dots,
+    ticks: durationTicksToFormatterTicks(durationTicks, divisions),
+  }
+}
+
+function keyFromElement(noteElement: Element) {
   const pitchElement = noteElement.querySelector('pitch')
   const step = pitchElement?.querySelector('step')?.textContent?.toLowerCase() ?? 'b'
   const octave = pitchElement?.querySelector('octave')?.textContent ?? '4'
-  const accidental = accidentalFromMusicXml(noteElement)
-  const dots = noteElement.querySelectorAll('dot').length
 
-  return {
-    key: `${step}/${octave}`,
-    duration: durationFromMusicXml(type),
-    accidental,
-    isRest,
-    dots,
-  }
+  return `${step}/${octave}`
+}
+
+function durationTicksToFormatterTicks(durationTicks: number, divisions: number) {
+  return Math.round((durationTicks / divisions) * 8)
 }
 
 function durationFromMusicXml(type: string) {
