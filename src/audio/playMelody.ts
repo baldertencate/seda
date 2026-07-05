@@ -21,8 +21,98 @@ type OrnamentPlaybackEvent = {
   durationMs: number
   velocity: number
 }
+type InstrumentSampleMap = Record<Instrument, Record<string, string>>
+type SampleChoice = {
+  file: string
+  frequency: number
+}
+
+const sampleNoteOffsets: Record<string, number> = {
+  C: 0,
+  'C#': 1,
+  Db: 1,
+  D: 2,
+  'D#': 3,
+  Eb: 3,
+  E: 4,
+  F: 5,
+  'F#': 6,
+  Gb: 6,
+  G: 7,
+  'G#': 8,
+  Ab: 8,
+  A: 9,
+  'A#': 10,
+  Bb: 10,
+  B: 11,
+}
+
+export type PitchMatchController = {
+  setOffsetCents: (cents: number) => void
+  stop: () => void
+}
 
 const players: Partial<Record<Instrument, Player>> = {}
+const urlsByInstrument: InstrumentSampleMap = {
+  piano: {
+    C4: 'C4.mp3',
+    D4: 'D4.mp3',
+    E4: 'E4.mp3',
+    F4: 'F4.mp3',
+    G4: 'G4.mp3',
+    A4: 'A4.mp3',
+    B4: 'B4.mp3',
+    C5: 'C5.mp3',
+  },
+  flute: {
+    C4: 'C4.mp3',
+    E4: 'E4.mp3',
+    A4: 'A4.mp3',
+    C5: 'C5.mp3',
+    E5: 'E5.mp3',
+  },
+  setar: {
+    C4: 'C4.wav',
+    E4: 'E4.wav',
+    A4: 'A4.wav',
+    C5: 'C5.wav',
+    E5: 'E5.wav',
+  },
+  violin: {
+    C4: 'C4.mp3',
+    E4: 'E4.mp3',
+    A4: 'A4.mp3',
+    C5: 'C5.mp3',
+    E5: 'E5.mp3',
+  },
+  cello: {
+    C3: 'C3.mp3',
+    G3: 'G3.mp3',
+    C4: 'C4.mp3',
+    E4: 'E4.mp3',
+    G4: 'G4.mp3',
+  },
+  trumpet: {
+    C4: 'C4.mp3',
+    F4: 'F4.mp3',
+    G4: 'G4.mp3',
+    D5: 'D5.mp3',
+    A5: 'A5.mp3',
+  },
+  clarinet: {
+    D4: 'D4.mp3',
+    F4: 'F4.mp3',
+    'A#4': 'As4.mp3',
+    D5: 'D5.mp3',
+    F5: 'F5.mp3',
+  },
+  trombone: {
+    C3: 'C3.mp3',
+    F3: 'F3.mp3',
+    C4: 'C4.mp3',
+    F4: 'F4.mp3',
+  },
+}
 
 function isSustainingInstrument(instrument: Instrument) {
   return ['flute', 'violin', 'cello', 'trumpet', 'clarinet', 'trombone'].includes(instrument)
@@ -94,67 +184,6 @@ function createSampler(instrument: Instrument) {
     wet: reverbWetFor(instrument),
   }).toDestination()
 
-  const urlsByInstrument: Record<Instrument, Record<string, string>> = {
-    piano: {
-      C4: 'C4.mp3',
-      D4: 'D4.mp3',
-      E4: 'E4.mp3',
-      F4: 'F4.mp3',
-      G4: 'G4.mp3',
-      A4: 'A4.mp3',
-      B4: 'B4.mp3',
-      C5: 'C5.mp3',
-    },
-    flute: {
-      C4: 'C4.mp3',
-      E4: 'E4.mp3',
-      A4: 'A4.mp3',
-      C5: 'C5.mp3',
-      E5: 'E5.mp3',
-    },
-    setar: {
-      C4: 'C4.wav',
-      E4: 'E4.wav',
-      A4: 'A4.wav',
-      C5: 'C5.wav',
-      E5: 'E5.wav',
-    },
-    violin: {
-      C4: 'C4.mp3',
-      E4: 'E4.mp3',
-      A4: 'A4.mp3',
-      C5: 'C5.mp3',
-      E5: 'E5.mp3',
-    },
-    cello: {
-      C3: 'C3.mp3',
-      G3: 'G3.mp3',
-      C4: 'C4.mp3',
-      E4: 'E4.mp3',
-      G4: 'G4.mp3',
-    },
-    trumpet: {
-      C4: 'C4.mp3',
-      F4: 'F4.mp3',
-      G4: 'G4.mp3',
-      D5: 'D5.mp3',
-      A5: 'A5.mp3',
-    },
-    clarinet: {
-      D4: 'D4.mp3',
-      F4: 'F4.mp3',
-      'A#4': 'As4.mp3',
-      D5: 'D5.mp3',
-      F5: 'F5.mp3',
-    },
-    trombone: {
-      C3: 'C3.mp3',
-      F3: 'F3.mp3',
-      C4: 'C4.mp3',
-      F4: 'F4.mp3',
-    },
-  }
-
   return new Tone.Sampler({
     urls: urlsByInstrument[instrument],
     baseUrl: assetPath(`samples/${instrument}/`),
@@ -197,6 +226,144 @@ function frequencyForQuarterTonePitch(pitch: QuarterTonePitch) {
 
 function frequencyForMidiNote(midiNote: number) {
   return 440 * 2 ** ((midiNote - 69) / 12)
+}
+
+function frequencyAtOffset(referenceFrequency: number, offsetCents: number) {
+  return referenceFrequency * 2 ** (offsetCents / 1200)
+}
+
+function midiForSampleNote(sampleNote: string) {
+  const match = /^([A-G](?:#|b)?)(-?\d+)$/.exec(sampleNote)
+
+  if (!match) {
+    throw new Error(`Unsupported sample note name: ${sampleNote}`)
+  }
+
+  const [, pitchName, octave] = match
+
+  return (Number(octave) + 1) * 12 + sampleNoteOffsets[pitchName]
+}
+
+function sampleChoicesFor(instrument: Instrument): SampleChoice[] {
+  return Object.entries(urlsByInstrument[instrument]).map(([sampleNote, file]) => ({
+    file,
+    frequency: frequencyForMidiNote(midiForSampleNote(sampleNote)),
+  }))
+}
+
+function chooseNearestSample(instrument: Instrument, targetFrequency: number) {
+  return sampleChoicesFor(instrument).reduce<SampleChoice | null>((nearest, choice) => {
+    if (nearest === null) {
+      return choice
+    }
+
+    const nearestDistance = Math.abs(Math.log2(nearest.frequency / targetFrequency))
+    const choiceDistance = Math.abs(Math.log2(choice.frequency / targetFrequency))
+
+    return choiceDistance < nearestDistance ? choice : nearest
+  }, null)
+}
+
+export async function startPitchMatchTone(
+  referenceFrequency: number,
+  initialOffsetCents: number,
+  instrument: Instrument,
+): Promise<PitchMatchController> {
+  await Tone.start()
+
+  const output = new Tone.Gain(0).toDestination()
+  const referenceGain = new Tone.Gain(0).connect(output)
+  const adjustableGain = new Tone.Gain(0).connect(output)
+  const referenceOscillator = new Tone.Oscillator(referenceFrequency, 'triangle').connect(referenceGain)
+  const initialFrequency = frequencyAtOffset(referenceFrequency, initialOffsetCents)
+  const sampleChoice = chooseNearestSample(instrument, initialFrequency)
+
+  if (sampleChoice === null) {
+    throw new Error(`No samples are configured for ${instrument}`)
+  }
+
+  const adjustablePlayer = new Tone.Player({
+    url: assetPath(`samples/${instrument}/${sampleChoice.file}`),
+    loop: true,
+    fadeIn: 0.03,
+    fadeOut: 0.04,
+  }).connect(adjustableGain)
+
+  await Tone.loaded()
+
+  const now = Tone.now()
+  adjustablePlayer.playbackRate = initialFrequency / sampleChoice.frequency
+
+  output.gain.setValueAtTime(0, now)
+  output.gain.linearRampToValueAtTime(0.2, now + 0.03)
+
+  referenceGain.gain.setValueAtTime(0, now)
+  referenceGain.gain.linearRampToValueAtTime(0.2, now + 0.03)
+
+  adjustableGain.gain.setValueAtTime(0, now + 0.72)
+  adjustableGain.gain.linearRampToValueAtTime(0.16, now + 0.9)
+
+  referenceOscillator.start(now)
+  adjustablePlayer.start(now + 0.72)
+
+  let isStopped = false
+  let isReferenceDisposed = false
+  let isAdjustableDisposed = false
+
+  function disposeReference() {
+    if (isReferenceDisposed) {
+      return
+    }
+
+    isReferenceDisposed = true
+    referenceOscillator.dispose()
+    referenceGain.dispose()
+  }
+
+  function disposeAdjustable() {
+    if (isAdjustableDisposed) {
+      return
+    }
+
+    isAdjustableDisposed = true
+    adjustablePlayer.dispose()
+    adjustableGain.dispose()
+  }
+
+  referenceOscillator.onstop = disposeReference
+
+  return {
+    setOffsetCents(cents: number) {
+      if (isStopped) {
+        return
+      }
+
+      adjustablePlayer.playbackRate = frequencyAtOffset(referenceFrequency, cents) / sampleChoice.frequency
+    },
+    stop() {
+      if (isStopped) {
+        return
+      }
+
+      isStopped = true
+      const stopTime = Tone.now() + 0.04
+      output.gain.cancelScheduledValues(Tone.now())
+      output.gain.linearRampToValueAtTime(0, stopTime)
+      referenceGain.gain.cancelScheduledValues(Tone.now())
+      adjustableGain.gain.cancelScheduledValues(Tone.now())
+      referenceGain.gain.linearRampToValueAtTime(0, stopTime)
+      adjustableGain.gain.linearRampToValueAtTime(0, stopTime)
+      if (!isReferenceDisposed) {
+        referenceOscillator.stop(stopTime)
+      }
+      adjustablePlayer.stop(stopTime)
+      adjustablePlayer.onstop = () => {
+        disposeReference()
+        disposeAdjustable()
+        output.dispose()
+      }
+    },
+  }
 }
 
 export async function playMelody(melody: Melody, instrument: Instrument) {

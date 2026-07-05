@@ -101,6 +101,13 @@ export type PitchDirectionQuestion = {
   correctOptionIndex: number
 }
 
+export type PitchMatchQuestion = {
+  id: string
+  referenceMidiNote: number
+  referenceFrequency: number
+  initialOffsetCents: number
+}
+
 export type SolfegeOption = {
   midiNote: number
   name: string
