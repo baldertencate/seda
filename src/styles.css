@@ -826,6 +826,32 @@ button:focus-visible {
   font-weight: 850;
 }
 
+.pitch-match-panel__target {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(215, 168, 69, 0.72);
+  border-radius: 8px;
+  background: rgba(255, 249, 233, 0.76);
+  color: #3b2430;
+}
+
+.pitch-match-panel__target span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.pitch-match-panel__target strong {
+  color: var(--primary);
+  font-size: 1.08rem;
+  font-weight: 900;
+  text-align: right;
+}
+
 .pitch-match-panel label span {
   color: var(--primary);
   font-size: 0.9rem;

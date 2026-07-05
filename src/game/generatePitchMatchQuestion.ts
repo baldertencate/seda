@@ -29,6 +29,8 @@ export function generatePitchMatchQuestion(random: RandomSource = Math.random): 
     referenceMidiNote,
     referenceFrequency: frequencyForMidiNote(referenceMidiNote),
     initialOffsetCents: randomInitialOffset(random),
+    targetOffsetCents: 0,
+    targetLabel: 'same pitch',
   }
 }
 
@@ -38,6 +40,7 @@ export function isPitchMatchQuestion(question: PitchMatchQuestion) {
       question.referenceMidiNote as (typeof DIATONIC_MIDI_NOTES)[number],
     ) &&
     Math.abs(question.initialOffsetCents) >= MIN_OFFSET_CENTS &&
-    Math.abs(question.initialOffsetCents) <= MAX_OFFSET_CENTS
+    Math.abs(question.initialOffsetCents) <= MAX_OFFSET_CENTS &&
+    question.targetOffsetCents === 0
   )
 }

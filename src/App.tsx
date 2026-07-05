@@ -26,6 +26,7 @@ import {
   pitchDirectionOptionKey,
 } from './game/generatePitchDirectionQuestion'
 import { generatePitchMatchQuestion } from './game/generatePitchMatchQuestion'
+import { generatePitchIntervalTuningQuestion } from './game/generatePitchIntervalTuningQuestion'
 import {
   generateQuarterToneQuestion,
   type QuarterToneQuestion,
@@ -556,6 +557,7 @@ type ExerciseId =
   | 'pitches-scale-quality'
   | 'pitches-scale-name'
   | 'pitches-match'
+  | 'pitches-match-interval'
   | 'ornaments'
   | 'rhythms'
   | 'intervals'
@@ -668,6 +670,11 @@ const exerciseLevels: Record<
       id: 'pitches-match',
       title: 'Level 8: Tune the note',
       description: 'Move a slider until the second sustained pitch matches the first note.',
+    },
+    {
+      id: 'pitches-match-interval',
+      title: 'Level 9: Tune the interval',
+      description: 'Move a slider until the second pitch forms the requested interval.',
     },
   ],
   ornaments: [
@@ -1472,25 +1479,46 @@ function RecognizeScaleNameExercise({
   )
 }
 
-function PitchMatchExercise({
+function PitchTuningExercise({
+  title,
+  createQuestion,
+  describeQuestion,
+  idlePrompt,
+  activePrompt,
+  successPrompt,
+  resultUnitSingular,
+  resultUnitPlural,
+  composer,
   instrument,
   onBackHome,
 }: {
+  title: string
+  createQuestion: () => PitchMatchQuestion
+  describeQuestion: (question: PitchMatchQuestion, instrument: Instrument) => ReactNode
+  idlePrompt: string
+  activePrompt: string
+  successPrompt: string
+  resultUnitSingular: string
+  resultUnitPlural: string
+  composer: ComposerId
   instrument: Instrument
   onBackHome: () => void
 }) {
-  const [question, setQuestion] = useState<PitchMatchQuestion>(() => generatePitchMatchQuestion())
+  const [question, setQuestion] = useState<PitchMatchQuestion>(() => createQuestion())
   const [questionNumber, setQuestionNumber] = useState(1)
   const [correctCount, setCorrectCount] = useState(0)
   const [sliderAdjustmentCents, setSliderAdjustmentCents] = useState(0)
   const [isStarted, setIsStarted] = useState(false)
+  const [isHintMode, setIsHintMode] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const controllerRef = useRef<PitchMatchController | null>(null)
   const holdTimerRef = useRef<number | null>(null)
 
   const currentOffsetCents = question.initialOffsetCents + sliderAdjustmentCents
-  const isCloseEnough = Math.abs(currentOffsetCents) <= 10
+  const tuningErrorCents = currentOffsetCents - question.targetOffsetCents
+  const isCloseEnough = Math.abs(currentOffsetCents - question.targetOffsetCents) <= 10
+  const hintText = isCloseEnough ? 'Stay steady' : tuningErrorCents < 0 ? 'Higher' : 'Lower'
 
   function clearHoldTimer() {
     if (holdTimerRef.current !== null) {
@@ -1552,7 +1580,7 @@ function PitchMatchExercise({
   }
 
   function createNextQuestion() {
-    const nextQuestion = generatePitchMatchQuestion()
+    const nextQuestion = createQuestion()
     stopTones()
     setQuestion(nextQuestion)
     setSliderAdjustmentCents(0)
@@ -1570,12 +1598,13 @@ function PitchMatchExercise({
   }
 
   function handleReset() {
-    const nextQuestion = generatePitchMatchQuestion()
+    const nextQuestion = createQuestion()
     stopTones()
     setQuestion(nextQuestion)
     setQuestionNumber(1)
     setCorrectCount(0)
     setSliderAdjustmentCents(0)
+    setIsHintMode(false)
     setIsSuccess(false)
     setShowResults(false)
   }
@@ -1589,8 +1618,8 @@ function PitchMatchExercise({
           </button>
           <h1 id="result-title">Result</h1>
           <p>
-            You matched {correctCount} out of {questionNumber} pitch
-            {questionNumber === 1 ? '' : 'es'}.
+            You tuned {correctCount} out of {questionNumber}{' '}
+            {questionNumber === 1 ? resultUnitSingular : resultUnitPlural}.
           </p>
           <button type="button" className="button button--primary" onClick={handleReset}>
             Play again
@@ -1608,11 +1637,8 @@ function PitchMatchExercise({
             Home
           </button>
           <div>
-            <h1 id="app-title">Tune the note</h1>
-            <p>
-              Hear a reference tone, then bend the {INSTRUMENT_LABELS[instrument].toLowerCase()}{' '}
-              note until it matches.
-            </p>
+            <h1 id="app-title">{title}</h1>
+            <p>{describeQuestion(question, instrument)}</p>
           </div>
         </header>
 
@@ -1624,7 +1650,7 @@ function PitchMatchExercise({
           maxMistakes={maxMistakes}
         />
 
-        <ComposerGuide composer="bach" reaction={isSuccess ? 'correct' : 'idle'} />
+        <ComposerGuide composer={composer} reaction={isSuccess ? 'correct' : 'idle'} />
 
         <section className="player-panel" aria-label="Pitch matching">
           <div className={isSuccess ? 'player-actions player-actions--answered' : 'player-actions'}>
@@ -1635,6 +1661,15 @@ function PitchMatchExercise({
               aria-label={isStarted ? 'Stop pitch matching tones' : 'Start pitch matching tones'}
             >
               {isStarted ? 'Stop tones' : 'Start tones'}
+            </button>
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={() => setIsHintMode((current) => !current)}
+              aria-pressed={isHintMode}
+              aria-label={isHintMode ? 'Turn hints off' : 'Turn hints on'}
+            >
+              {isHintMode ? 'Hide hints' : 'Hints'}
             </button>
             <button
               type="button"
@@ -1651,17 +1686,23 @@ function PitchMatchExercise({
             aria-live="polite"
           >
             {isSuccess
-              ? 'Matched. Nicely tuned.'
+              ? successPrompt
               : isStarted
-                ? 'Move the slider until the second tone locks onto the first.'
-                : 'Start the tones, then tune the second pitch by ear.'}
+                ? activePrompt
+                : idlePrompt}
           </p>
         </section>
 
         <section className="pitch-match-panel" aria-label="Tune the second note">
+          <div className="pitch-match-panel__target">
+            <span>{question.targetOffsetCents === 0 ? 'Target' : 'Target interval'}</span>
+            <strong>{question.targetLabel}</strong>
+          </div>
           <label htmlFor="pitch-match-slider">
             Second note pitch
-            <span>{isCloseEnough && isStarted ? 'Hold steady...' : 'Tune by ear'}</span>
+            {isHintMode ? (
+              <span aria-live="polite">{isStarted ? hintText : 'Start tones for hints'}</span>
+            ) : null}
           </label>
           <input
             id="pitch-match-slider"
@@ -1674,13 +1715,71 @@ function PitchMatchExercise({
             disabled={isSuccess}
             aria-label="Adjust the second note pitch"
           />
-          <div className="pitch-match-panel__scale" aria-hidden="true">
-            <span>Lower</span>
-            <span>Higher</span>
-          </div>
+          {isHintMode ? (
+            <div className="pitch-match-panel__scale" aria-hidden="true">
+              <span>Lower</span>
+              <span>Higher</span>
+            </div>
+          ) : null}
         </section>
       </section>
     </main>
+  )
+}
+
+function PitchMatchExercise({
+  instrument,
+  onBackHome,
+}: {
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  return (
+    <PitchTuningExercise
+      title="Tune the note"
+      createQuestion={generatePitchMatchQuestion}
+      describeQuestion={(_, selectedInstrument) =>
+        `Hear a reference tone, then bend the ${INSTRUMENT_LABELS[
+          selectedInstrument
+        ].toLowerCase()} note until it matches.`
+      }
+      idlePrompt="Start the tones, then tune the second pitch by ear."
+      activePrompt="Move the slider until the second tone locks onto the first."
+      successPrompt="Matched. Nicely tuned."
+      resultUnitSingular="pitch"
+      resultUnitPlural="pitches"
+      composer="bach"
+      instrument={instrument}
+      onBackHome={onBackHome}
+    />
+  )
+}
+
+function PitchIntervalTuningExercise({
+  instrument,
+  onBackHome,
+}: {
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  return (
+    <PitchTuningExercise
+      title="Tune the interval"
+      createQuestion={generatePitchIntervalTuningQuestion}
+      describeQuestion={(question, selectedInstrument) =>
+        `Hear the reference tone, then tune the ${INSTRUMENT_LABELS[
+          selectedInstrument
+        ].toLowerCase()} note to a ${question.targetLabel}.`
+      }
+      idlePrompt="Start the tones, then tune the second pitch to the named interval."
+      activePrompt="Move the slider until the second tone forms the requested interval."
+      successPrompt="Interval locked in. Nicely tuned."
+      resultUnitSingular="interval"
+      resultUnitPlural="intervals"
+      composer="beethoven"
+      instrument={instrument}
+      onBackHome={onBackHome}
+    />
   )
 }
 
@@ -2687,6 +2786,10 @@ function App() {
 
     if (selectedExercise === 'pitches-match') {
       return <PitchMatchExercise instrument={instrument} onBackHome={handleBackHome} />
+    }
+
+    if (selectedExercise === 'pitches-match-interval') {
+      return <PitchIntervalTuningExercise instrument={instrument} onBackHome={handleBackHome} />
     }
 
     if (selectedExercise === 'rhythms') {

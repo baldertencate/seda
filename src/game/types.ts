@@ -106,6 +106,8 @@ export type PitchMatchQuestion = {
   referenceMidiNote: number
   referenceFrequency: number
   initialOffsetCents: number
+  targetOffsetCents: number
+  targetLabel: string
 }
 
 export type SolfegeOption = {

@@ -8,6 +8,8 @@ describe('generatePitchMatchQuestion', () => {
     expect(isPitchMatchQuestion(question)).toBe(true)
     expect(question.referenceFrequency).toBeGreaterThan(0)
     expect(question.initialOffsetCents).not.toBe(0)
+    expect(question.targetOffsetCents).toBe(0)
+    expect(question.targetLabel).toBe('same pitch')
   })
 
   it('starts the adjustable pitch at least a quarter tone away', () => {
