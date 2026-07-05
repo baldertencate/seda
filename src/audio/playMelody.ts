@@ -25,7 +25,7 @@ type OrnamentPlaybackEvent = {
 const players: Partial<Record<Instrument, Player>> = {}
 
 function isSustainingInstrument(instrument: Instrument) {
-  return ['flute', 'trumpet', 'clarinet', 'trombone'].includes(instrument)
+  return ['flute', 'violin', 'cello', 'trumpet', 'clarinet', 'trombone'].includes(instrument)
 }
 
 function reverbDecayFor(instrument: Instrument) {
@@ -35,6 +35,10 @@ function reverbDecayFor(instrument: Instrument) {
 
   if (instrument === 'setar') {
     return 1.6
+  }
+
+  if (instrument === 'violin' || instrument === 'cello') {
+    return 2.3
   }
 
   return 2.1
@@ -59,6 +63,10 @@ function releaseFor(instrument: Instrument) {
 
   if (instrument === 'setar') {
     return 0.65
+  }
+
+  if (instrument === 'violin' || instrument === 'cello') {
+    return 0.55
   }
 
   return 0.35
@@ -110,6 +118,20 @@ function createSampler(instrument: Instrument) {
       A4: 'A4.wav',
       C5: 'C5.wav',
       E5: 'E5.wav',
+    },
+    violin: {
+      C4: 'C4.mp3',
+      E4: 'E4.mp3',
+      A4: 'A4.mp3',
+      C5: 'C5.mp3',
+      E5: 'E5.mp3',
+    },
+    cello: {
+      C3: 'C3.mp3',
+      G3: 'G3.mp3',
+      C4: 'C4.mp3',
+      E4: 'E4.mp3',
+      G4: 'G4.mp3',
     },
     trumpet: {
       C4: 'C4.mp3',

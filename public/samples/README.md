@@ -6,6 +6,14 @@ https://github.com/nbrosowsky/tonejs-instruments.
 The upstream project documents its code as MIT licensed and its samples as
 CC BY 3.0. See the upstream README and sample-source-info.txt for more detail.
 
+The bundled violin and cello samples are copied from the Philharmonia
+Orchestra sound sample library:
+https://philharmonia.co.uk/resources/sound-samples/
+
+The Philharmonia library states that the samples are free to use, including in
+commercial work, with the restriction that they must not be sold or made
+available as-is as samples or as a sampler instrument.
+
 Only a small subset of notes is included here so the PWA can work offline
 without loading a full instrument library.
 
