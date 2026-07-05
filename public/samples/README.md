@@ -1,6 +1,6 @@
 # Instrument samples
 
-The bundled piano and flute samples are copied from
+The bundled piano, flute, trumpet, clarinet, and trombone samples are copied from
 https://github.com/nbrosowsky/tonejs-instruments.
 
 The upstream project documents its code as MIT licensed and its samples as

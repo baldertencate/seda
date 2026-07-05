@@ -1,13 +1,14 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { type MutableRefObject, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import {
   playInterval,
   playMelody,
+  playMidiSequence,
   playOrnamentedMelody,
   playPitchPair,
   playQuarterToneMelody,
   playRhythmPhrase,
 } from './audio/playMelody'
-import { INSTRUMENT_LABELS, type Instrument } from './audio/types'
+import { INSTRUMENT_LABELS, INSTRUMENTS, type Instrument } from './audio/types'
 import { ComposerGuide, type ComposerId } from './components/ComposerGuide'
 import { MusicXmlOpeningScore } from './components/MusicXmlOpeningScore'
 import { ScoreOption, type ScoreOptionScore } from './components/ScoreOption'
@@ -28,11 +29,24 @@ import {
 } from './game/generateQuarterToneQuestion'
 import { generateQuestion } from './game/generateQuestion'
 import { generateRhythmQuestion, rhythmPhraseKey } from './game/generateRhythmQuestion'
+import {
+  generateNamedScaleQuestion,
+  generateScaleQuestion,
+  namedScaleOptionKey,
+  scaleOptionKey,
+} from './game/generateScaleQuestion'
+import {
+  generateChromaticSolfegeQuestion,
+  generateSolfegeQuestion,
+  solfegeOptionKey,
+} from './game/generateSolfegeQuestion'
 import { melodyKey, quarterToneMelodyKey } from './game/music'
 import type {
   Melody,
   IntervalOption,
   IntervalQuestion,
+  NamedScaleOption,
+  NamedScaleQuestion,
   OrnamentQuestion,
   OrnamentedMelody,
   PitchDirectionOption,
@@ -41,6 +55,10 @@ import type {
   QuarterToneMelody,
   RhythmPhrase,
   RhythmQuestion,
+  ScaleOption,
+  ScaleQuestion,
+  SolfegeOption,
+  SolfegeQuestion,
 } from './game/types'
 import './styles.css'
 
@@ -68,6 +86,35 @@ type ScrapedAlignmentMeasure = {
 type ScrapedAlignmentFile = {
   exercise_measures?: ScrapedAlignmentMeasure[]
   measures?: ScrapedAlignmentMeasure[]
+}
+
+type PhraseInspectorPhrase = {
+  number: number
+  id: string
+  title: string
+  occurrenceCount: number
+  startSeconds: number
+  endSeconds: number
+  measureLabel: string
+}
+
+type PhraseInspectorTimingOccurrence = {
+  measureLabel?: string | null
+  start: number
+  end: number
+  soundingStart?: number
+  soundingEnd?: number
+}
+
+type PhraseInspectorTimingPhrase = {
+  phraseNumber: number
+  phraseId: string
+  title: string
+  occurrences: PhraseInspectorTimingOccurrence[]
+}
+
+type PhraseInspectorTimingFile = {
+  phrases: PhraseInspectorTimingPhrase[]
 }
 
 type ClassicalPieceConfig = {
@@ -153,6 +200,12 @@ const classicalPieces: ClassicalPieceConfig[] = [
 const scrapedScorePath = assetPath('exercises/scraped/fur-elise-fixture/score.musicxml')
 const scrapedRecordingPath = assetPath('exercises/scraped/fur-elise-fixture/recording.mp3')
 const scrapedAlignmentPath = assetPath('exercises/scraped/fur-elise-fixture/alignment.json')
+const phraseInspectorRecordingPath = assetPath(
+  'exercises/scraped/bach-wtc1-prelude-c-major-bwv846/audio_original.ogg',
+)
+const phraseInspectorTimingPath = assetPath(
+  'exercises/scraped/bach-wtc1-prelude-c-major-bwv846/phrase_timings.json',
+)
 
 type RecordingClip = {
   context: AudioContext
@@ -230,6 +283,8 @@ const barsByPiece = classicalPieces.reduce<Record<ClassicalPieceId, ClassicalBar
 const recordingClipPromises: Partial<Record<ClassicalPieceId, Promise<RecordingClip>>> = {}
 let scrapedClipPromise: Promise<RecordingClip> | null = null
 let scrapedBarsPromise: Promise<ScrapedBar[]> | null = null
+let phraseInspectorClipPromise: Promise<RecordingClip> | null = null
+let phraseInspectorPhrasesPromise: Promise<PhraseInspectorPhrase[]> | null = null
 
 async function loadClassicalClip(bar: ClassicalBar) {
   const clipPromise = recordingClipPromises[bar.pieceId] ?? loadRecordingClip(bar.recordingPath)
@@ -242,6 +297,12 @@ async function loadScrapedClip() {
   scrapedClipPromise ??= loadRecordingClip(scrapedRecordingPath)
 
   return scrapedClipPromise
+}
+
+async function loadPhraseInspectorClip() {
+  phraseInspectorClipPromise ??= loadRecordingClip(phraseInspectorRecordingPath)
+
+  return phraseInspectorClipPromise
 }
 
 async function loadScrapedBars() {
@@ -264,6 +325,45 @@ async function loadScrapedBars() {
   })
 
   return scrapedBarsPromise
+}
+
+async function loadPhraseInspectorPhrases() {
+  phraseInspectorPhrasesPromise ??= fetch(phraseInspectorTimingPath).then(async (response) => {
+    if (!response.ok) {
+      throw new Error('Phrase inspector data could not be loaded.')
+    }
+
+    const timing = (await response.json()) as PhraseInspectorTimingFile
+
+    return timing.phrases
+      .map((phrase) => {
+        const firstOccurrence = phrase.occurrences[0]
+
+        if (!firstOccurrence) {
+          return null
+        }
+
+        const startSeconds = firstOccurrence.soundingStart ?? firstOccurrence.start
+        const endSeconds = firstOccurrence.soundingEnd ?? firstOccurrence.end
+
+        if (endSeconds <= startSeconds) {
+          return null
+        }
+
+        return {
+          number: phrase.phraseNumber,
+          id: phrase.phraseId,
+          title: phrase.title,
+          occurrenceCount: phrase.occurrences.length,
+          startSeconds,
+          endSeconds,
+          measureLabel: firstOccurrence.measureLabel ?? String(phrase.phraseNumber),
+        } satisfies PhraseInspectorPhrase
+      })
+      .filter((phrase): phrase is PhraseInspectorPhrase => Boolean(phrase))
+  })
+
+  return phraseInspectorPhrasesPromise
 }
 
 async function loadRecordingClip(src: string): Promise<RecordingClip> {
@@ -313,6 +413,40 @@ function stopAudioSource(source: AudioBufferSourceNode | null) {
   } catch {
     // The source may already have ended.
   }
+}
+
+async function playRecordingSegment(
+  clip: RecordingClip,
+  startSeconds: number,
+  endSeconds: number,
+  sourceRef: MutableRefObject<AudioBufferSourceNode | null>,
+) {
+  const source = clip.context.createBufferSource()
+  const durationSeconds = endSeconds - startSeconds
+
+  if (clip.context.state !== 'running') {
+    await clip.context.resume()
+  }
+
+  source.buffer = clip.buffer
+  source.connect(clip.context.destination)
+  sourceRef.current = source
+  source.start(clip.context.currentTime, startSeconds, durationSeconds)
+
+  await new Promise<void>((resolve) => {
+    const timeout = window.setTimeout(() => {
+      resolve()
+    }, durationSeconds * 1000)
+
+    source.addEventListener(
+      'ended',
+      () => {
+        window.clearTimeout(timeout)
+        resolve()
+      },
+      { once: true },
+    )
+  })
 }
 
 function shuffled<T>(items: T[]) {
@@ -413,12 +547,17 @@ type ExerciseId =
   | 'pitches'
   | 'pitches-2'
   | 'pitches-3'
+  | 'pitches-solfege'
+  | 'pitches-solfege-chromatic'
+  | 'pitches-scale-quality'
+  | 'pitches-scale-name'
   | 'ornaments'
   | 'rhythms'
   | 'intervals'
   | 'pitch-direction'
   | 'score-match'
   | 'scraped-bars'
+  | 'phrase-inspector'
 type ExerciseCategoryId = 'pitches' | 'ornaments' | 'rhythms' | 'intervals' | 'score-match'
 
 type AnswerState = {
@@ -500,6 +639,26 @@ const exerciseLevels: Record<
       title: 'Level 3: Koron and sori',
       description: 'Quarter-tone melodies using half-flats, half-sharps, and full accidentals.',
     },
+    {
+      id: 'pitches-solfege',
+      title: 'Level 4: Solfege reference',
+      description: 'Hear a named reference note, then identify the second note by solfege.',
+    },
+    {
+      id: 'pitches-solfege-chromatic',
+      title: 'Level 5: Solfege with sharps and flats',
+      description: 'Use a named reference note, then identify a natural, sharp, or flat second note.',
+    },
+    {
+      id: 'pitches-scale-quality',
+      title: 'Level 6: Major or minor scale',
+      description: 'Hear an ascending scale and decide whether it is major or minor.',
+    },
+    {
+      id: 'pitches-scale-name',
+      title: 'Level 7: Name the scale',
+      description: 'Hear a major or minor scale go up and down, then choose its exact name.',
+    },
   ],
   ornaments: [
     {
@@ -538,6 +697,11 @@ const exerciseLevels: Record<
       title: 'Scraped aligned bars',
       description: 'Use measured score/audio alignment from the scraping corpus.',
     },
+    {
+      id: 'phrase-inspector',
+      title: 'Inspect Bach phrases',
+      description: 'Type a unique phrase number from the deduplicated file and play it.',
+    },
   ],
 }
 
@@ -545,7 +709,7 @@ function InstrumentSelector({ instrument, onChange }: InstrumentSelectorProps) {
   return (
     <fieldset className="instrument-selector" aria-label="Instrument">
       <legend>Instrument</legend>
-      {(['piano', 'flute', 'setar'] as const).map((option) => (
+      {INSTRUMENTS.map((option) => (
         <button
           key={option}
           type="button"
@@ -918,7 +1082,7 @@ function TextAnswerExerciseSession<
 }: {
   title: string
   description: string
-  idlePrompt: string
+  idlePrompt: string | ((question: TQuestion) => string)
   createQuestion: () => TQuestion
   getOptionKey: (option: TOption) => string
   getOptionLabel: (option: TOption) => string
@@ -939,11 +1103,11 @@ function TextAnswerExerciseSession<
 
   const feedback = useMemo(() => {
     if (!answer) {
-      return idlePrompt
+      return typeof idlePrompt === 'function' ? idlePrompt(question) : idlePrompt
     }
 
     return answer.wasCorrect ? 'Correct' : 'Not quite'
-  }, [answer, idlePrompt])
+  }, [answer, idlePrompt, question])
 
   async function handlePlay() {
     setIsPlaying(true)
@@ -1188,6 +1352,110 @@ function RecognizePitchesThreeExercise({
         playQuarterToneMelody(question.target, selectedInstrument)
       }
       composer="bach"
+      instrument={instrument}
+      onBackHome={onBackHome}
+    />
+  )
+}
+
+function RecognizeSolfegeReferenceExercise({
+  instrument,
+  onBackHome,
+}: {
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  return (
+    <TextAnswerExerciseSession<SolfegeQuestion, SolfegeOption>
+      title="Solfege reference"
+      description="Use the named first note to identify the second note."
+      idlePrompt={(question) =>
+        `This note is ${question.reference.label}. What is the second note?`
+      }
+      createQuestion={generateSolfegeQuestion}
+      getOptionKey={solfegeOptionKey}
+      getOptionLabel={(option) => option.label}
+      playTarget={(question, selectedInstrument) =>
+        playInterval(question.reference.midiNote, question.target.midiNote, selectedInstrument)
+      }
+      composer="bach"
+      instrument={instrument}
+      onBackHome={onBackHome}
+    />
+  )
+}
+
+function RecognizeChromaticSolfegeReferenceExercise({
+  instrument,
+  onBackHome,
+}: {
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  return (
+    <TextAnswerExerciseSession<SolfegeQuestion, SolfegeOption>
+      title="Solfege with sharps and flats"
+      description="Use the named first note to identify a natural, sharp, or flat second note."
+      idlePrompt={(question) =>
+        `This note is ${question.reference.label}. What is the second note?`
+      }
+      createQuestion={generateChromaticSolfegeQuestion}
+      getOptionKey={solfegeOptionKey}
+      getOptionLabel={(option) => option.label}
+      playTarget={(question, selectedInstrument) =>
+        playInterval(question.reference.midiNote, question.target.midiNote, selectedInstrument)
+      }
+      composer="beethoven"
+      instrument={instrument}
+      onBackHome={onBackHome}
+    />
+  )
+}
+
+function RecognizeScaleQualityExercise({
+  instrument,
+  onBackHome,
+}: {
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  return (
+    <TextAnswerExerciseSession<ScaleQuestion, ScaleOption>
+      title="Major or minor scale"
+      description="Hear a scale go up and back down, then choose its quality."
+      idlePrompt="Listen to the full scale, then choose major or minor."
+      createQuestion={generateScaleQuestion}
+      getOptionKey={scaleOptionKey}
+      getOptionLabel={(option) => option.label}
+      playTarget={(question, selectedInstrument) =>
+        playMidiSequence(question.scale, selectedInstrument)
+      }
+      composer="mozart"
+      instrument={instrument}
+      onBackHome={onBackHome}
+    />
+  )
+}
+
+function RecognizeScaleNameExercise({
+  instrument,
+  onBackHome,
+}: {
+  instrument: Instrument
+  onBackHome: () => void
+}) {
+  return (
+    <TextAnswerExerciseSession<NamedScaleQuestion, NamedScaleOption>
+      title="Name the scale"
+      description="Hear the scale go up and down, then choose its exact name."
+      idlePrompt="Listen to the full scale, then choose its name."
+      createQuestion={generateNamedScaleQuestion}
+      getOptionKey={namedScaleOptionKey}
+      getOptionLabel={(option) => option.label}
+      playTarget={(question, selectedInstrument) =>
+        playMidiSequence(question.scale, selectedInstrument)
+      }
+      composer="mozart"
       instrument={instrument}
       onBackHome={onBackHome}
     />
@@ -1640,6 +1908,180 @@ function ScoreMatchExercise({ onBackHome }: { onBackHome: () => void }) {
   )
 }
 
+function PhraseInspectorExercise({ onBackHome }: { onBackHome: () => void }) {
+  const [phrases, setPhrases] = useState<PhraseInspectorPhrase[]>([])
+  const [phraseNumber, setPhraseNumber] = useState('1')
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null)
+  const maxPhraseNumber = phrases.length
+  const selectedPhraseNumber = Number(phraseNumber)
+  const selectedPhrase = Number.isInteger(selectedPhraseNumber)
+    ? phrases[selectedPhraseNumber - 1]
+    : undefined
+  const canPlay = Boolean(selectedPhrase) && !isPlaying
+  const stopCurrentPhrase = () => stopAudioSource(sourceRef.current)
+
+  useEffect(() => {
+    let isCancelled = false
+
+    loadPhraseInspectorPhrases()
+      .then((loadedPhrases) => {
+        if (isCancelled) {
+          return
+        }
+
+        if (loadedPhrases.length === 0) {
+          throw new Error('No playable phrases are available.')
+        }
+
+        setPhrases(loadedPhrases)
+        setPhraseNumber('1')
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setLoadError('The phrase data could not be loaded.')
+        }
+      })
+
+    return () => {
+      isCancelled = true
+      stopCurrentPhrase()
+    }
+  }, [])
+
+  function handlePhraseNumberChange(value: string) {
+    const numericValue = Number(value)
+
+    if (value === '') {
+      setPhraseNumber(value)
+      return
+    }
+
+    if (!Number.isInteger(numericValue)) {
+      return
+    }
+
+    setPhraseNumber(String(Math.min(Math.max(numericValue, 1), maxPhraseNumber || 1)))
+  }
+
+  async function handlePlay() {
+    if (!selectedPhrase) {
+      return
+    }
+
+    setIsPlaying(true)
+    setPlaybackError(null)
+    stopCurrentPhrase()
+
+    try {
+      const clip = await loadPhraseInspectorClip()
+
+      await playRecordingSegment(
+        clip,
+        selectedPhrase.startSeconds,
+        selectedPhrase.endSeconds,
+        sourceRef,
+      )
+    } catch {
+      setPlaybackError('The phrase could not be played.')
+    } finally {
+      setIsPlaying(false)
+    }
+  }
+
+  if (loadError) {
+    return (
+      <main className="app-shell">
+        <section className="result-panel" aria-labelledby="phrase-inspector-error-title">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <h1 id="phrase-inspector-error-title">Inspect Bach phrases</h1>
+          <p>{loadError}</p>
+        </section>
+      </main>
+    )
+  }
+
+  if (phrases.length === 0) {
+    return (
+      <main className="app-shell">
+        <section className="result-panel" aria-labelledby="phrase-inspector-loading-title">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <h1 id="phrase-inspector-loading-title">Inspect Bach phrases</h1>
+          <p>Loading phrases...</p>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="app-shell">
+      <section className="exercise" aria-labelledby="phrase-inspector-title">
+        <header className="app-header app-header--with-back">
+          <button type="button" className="back-button" onClick={onBackHome}>
+            Home
+          </button>
+          <div>
+            <h1 id="phrase-inspector-title">Inspect Bach phrases</h1>
+            <p>Type a unique phrase number and play it from the original recording.</p>
+          </div>
+        </header>
+
+        <ComposerGuide composer="bach" reaction="idle" />
+
+        <section className="player-panel" aria-label="Phrase playback">
+          <div className="difficulty-control">
+            <label htmlFor="phrase-number">
+              Phrase number
+              <strong>1-{maxPhraseNumber}</strong>
+            </label>
+            <input
+              id="phrase-number"
+              type="number"
+              min="1"
+              max={maxPhraseNumber}
+              value={phraseNumber}
+              onChange={(event) => handlePhraseNumberChange(event.target.value)}
+            />
+          </div>
+
+          <div className="player-actions">
+            <button
+              type="button"
+              className="button button--primary"
+              onClick={handlePlay}
+              disabled={!canPlay}
+              aria-label="Play selected phrase"
+            >
+              {isPlaying ? 'Playing...' : 'Play phrase'}
+            </button>
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={() => handlePhraseNumberChange(String((selectedPhraseNumber || 0) + 1))}
+              disabled={isPlaying || selectedPhraseNumber >= maxPhraseNumber}
+            >
+              Next
+            </button>
+          </div>
+
+          <p className="feedback" aria-live="polite">
+            {selectedPhrase
+              ? `Phrase ${selectedPhrase.number}: ${selectedPhrase.title}, measure ${selectedPhrase.measureLabel}, ${selectedPhrase.occurrenceCount} occurrence${selectedPhrase.occurrenceCount === 1 ? '' : 's'}.`
+              : 'Choose a phrase number in range.'}
+            {playbackError ? ` ${playbackError}` : ''}
+          </p>
+        </section>
+      </section>
+    </main>
+  )
+}
+
 function ScrapedBarsExercise({ onBackHome }: { onBackHome: () => void }) {
   const [availableBars, setAvailableBars] = useState<ScrapedBar[]>([])
   const [barSession, setBarSession] = useState<ScrapedBarExerciseState | null>(null)
@@ -1985,6 +2427,42 @@ function App() {
       return <RecognizePitchesThreeExercise instrument={instrument} onBackHome={handleBackHome} />
     }
 
+    if (selectedExercise === 'pitches-solfege') {
+      return (
+        <RecognizeSolfegeReferenceExercise
+          instrument={instrument}
+          onBackHome={handleBackHome}
+        />
+      )
+    }
+
+    if (selectedExercise === 'pitches-solfege-chromatic') {
+      return (
+        <RecognizeChromaticSolfegeReferenceExercise
+          instrument={instrument}
+          onBackHome={handleBackHome}
+        />
+      )
+    }
+
+    if (selectedExercise === 'pitches-scale-quality') {
+      return (
+        <RecognizeScaleQualityExercise
+          instrument={instrument}
+          onBackHome={handleBackHome}
+        />
+      )
+    }
+
+    if (selectedExercise === 'pitches-scale-name') {
+      return (
+        <RecognizeScaleNameExercise
+          instrument={instrument}
+          onBackHome={handleBackHome}
+        />
+      )
+    }
+
     if (selectedExercise === 'rhythms') {
       return <RecognizeRhythmsExercise instrument={instrument} onBackHome={handleBackHome} />
     }
@@ -2003,6 +2481,10 @@ function App() {
 
     if (selectedExercise === 'scraped-bars') {
       return <ScrapedBarsExercise onBackHome={handleBackHome} />
+    }
+
+    if (selectedExercise === 'phrase-inspector') {
+      return <PhraseInspectorExercise onBackHome={handleBackHome} />
     }
 
     return <RecognizePitchesExercise instrument={instrument} onBackHome={handleBackHome} />

@@ -24,10 +24,66 @@ type OrnamentPlaybackEvent = {
 
 const players: Partial<Record<Instrument, Player>> = {}
 
+function isSustainingInstrument(instrument: Instrument) {
+  return ['flute', 'trumpet', 'clarinet', 'trombone'].includes(instrument)
+}
+
+function reverbDecayFor(instrument: Instrument) {
+  if (instrument === 'piano') {
+    return 1.4
+  }
+
+  if (instrument === 'setar') {
+    return 1.6
+  }
+
+  return 2.1
+}
+
+function reverbWetFor(instrument: Instrument) {
+  if (instrument === 'piano') {
+    return 0.1
+  }
+
+  if (instrument === 'setar') {
+    return 0.08
+  }
+
+  return 0.16
+}
+
+function releaseFor(instrument: Instrument) {
+  if (instrument === 'piano') {
+    return 0.7
+  }
+
+  if (instrument === 'setar') {
+    return 0.65
+  }
+
+  return 0.35
+}
+
+function volumeFor(instrument: Instrument) {
+  if (instrument === 'piano') {
+    return -4
+  }
+
+  if (instrument === 'setar') {
+    return -6
+  }
+
+  if (instrument === 'trumpet' || instrument === 'trombone') {
+    return -10
+  }
+
+  return -7
+}
+
 function createSampler(instrument: Instrument) {
   const reverb = new Tone.Reverb({
-    decay: instrument === 'piano' ? 1.4 : instrument === 'setar' ? 1.6 : 2.2,
-    wet: instrument === 'piano' ? 0.1 : instrument === 'setar' ? 0.08 : 0.16,
+    decay: reverbDecayFor(instrument),
+    wet: reverbWetFor(instrument),
   }).toDestination()
 
   const urlsByInstrument: Record<Instrument, Record<string, string>> = {
@@ -55,14 +111,34 @@ function createSampler(instrument: Instrument) {
       C5: 'C5.wav',
       E5: 'E5.wav',
     },
+    trumpet: {
+      C4: 'C4.mp3',
+      F4: 'F4.mp3',
+      G4: 'G4.mp3',
+      D5: 'D5.mp3',
+      A5: 'A5.mp3',
+    },
+    clarinet: {
+      D4: 'D4.mp3',
+      F4: 'F4.mp3',
+      'A#4': 'As4.mp3',
+      D5: 'D5.mp3',
+      F5: 'F5.mp3',
+    },
+    trombone: {
+      C3: 'C3.mp3',
+      F3: 'F3.mp3',
+      C4: 'C4.mp3',
+      F4: 'F4.mp3',
+    },
   }
 
   return new Tone.Sampler({
     urls: urlsByInstrument[instrument],
     baseUrl: assetPath(`samples/${instrument}/`),
-    attack: instrument === 'flute' ? 0.02 : 0,
-    release: instrument === 'piano' ? 0.7 : instrument === 'setar' ? 0.65 : 0.35,
-    volume: instrument === 'piano' ? -4 : instrument === 'setar' ? -6 : -7,
+    attack: isSustainingInstrument(instrument) ? 0.02 : 0,
+    release: releaseFor(instrument),
+    volume: volumeFor(instrument),
   }).connect(reverb)
 }
 
@@ -97,6 +173,10 @@ function frequencyForQuarterTonePitch(pitch: QuarterTonePitch) {
   return 440 * 2 ** ((pitch.midi + pitch.cents / 100 - 69) / 12)
 }
 
+function frequencyForMidiNote(midiNote: number) {
+  return 440 * 2 ** ((midiNote - 69) / 12)
+}
+
 export async function playMelody(melody: Melody, instrument: Instrument) {
   await Tone.start()
 
@@ -106,6 +186,18 @@ export async function playMelody(melody: Melody, instrument: Instrument) {
   for (const midiNote of melody) {
     player.triggerAttackRelease(MIDI_TO_NOTE_NAME[midiNote], '4n')
     await wait(quarterNoteMs)
+  }
+}
+
+export async function playMidiSequence(sequence: number[], instrument: Instrument) {
+  await Tone.start()
+
+  const player = getPlayer(instrument)
+  await Tone.loaded()
+
+  for (const midiNote of sequence) {
+    player.triggerAttackRelease(frequencyForMidiNote(midiNote), '8n')
+    await wait(eighthNoteMs)
   }
 }
 

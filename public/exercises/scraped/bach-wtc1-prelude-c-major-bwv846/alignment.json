@@ -1,0 +1,195 @@
+{
+  "status": "ok",
+  "metadata": {
+    "title": null,
+    "composer": null,
+    "sample_rate": 44100,
+    "score": "collected_ready_musicxml/bach-wtc1-prelude-c-major-bwv846/score_source.mxl",
+    "audio": "collected_ready_musicxml/bach-wtc1-prelude-c-major-bwv846/audio_original.ogg",
+    "reference_renderer": "pretty_midi.synthesize",
+    "feature": "librosa chroma_cqt",
+    "alignment": "librosa DTW",
+    "confidence": 0.9058,
+    "confidence_threshold": 0.0,
+    "performance_duration": 162.92
+  },
+  "measures": [
+    {
+      "measure": 1,
+      "start": 1.4396,
+      "end": 4.0434
+    },
+    {
+      "measure": 2,
+      "start": 4.0434,
+      "end": 6.6006
+    },
+    {
+      "measure": 3,
+      "start": 6.6006,
+      "end": 9.1115
+    },
+    {
+      "measure": 4,
+      "start": 9.1115,
+      "end": 11.7616
+    },
+    {
+      "measure": 5,
+      "start": 11.7616,
+      "end": 14.2725
+    },
+    {
+      "measure": 6,
+      "start": 14.2725,
+      "end": 16.9226
+    },
+    {
+      "measure": 7,
+      "start": 16.9226,
+      "end": 19.4799
+    },
+    {
+      "measure": 8,
+      "start": 19.4799,
+      "end": 21.805
+    },
+    {
+      "measure": 9,
+      "start": 21.805,
+      "end": 24.8731
+    },
+    {
+      "measure": 10,
+      "start": 24.8731,
+      "end": 27.1517
+    },
+    {
+      "measure": 11,
+      "start": 27.1517,
+      "end": 29.709
+    },
+    {
+      "measure": 12,
+      "start": 29.709,
+      "end": 32.3127
+    },
+    {
+      "measure": 13,
+      "start": 32.3127,
+      "end": 34.87
+    },
+    {
+      "measure": 14,
+      "start": 34.87,
+      "end": 37.5666
+    },
+    {
+      "measure": 15,
+      "start": 37.5666,
+      "end": 40.1239
+    },
+    {
+      "measure": 16,
+      "start": 40.1239,
+      "end": 42.6347
+    },
+    {
+      "measure": 17,
+      "start": 42.6347,
+      "end": 45.3254
+    },
+    {
+      "measure": 18,
+      "start": 45.3254,
+      "end": 47.7493
+    },
+    {
+      "measure": 19,
+      "start": 47.7493,
+      "end": 50.5852
+    },
+    {
+      "measure": 20,
+      "start": 50.5852,
+      "end": 53.0496
+    },
+    {
+      "measure": 21,
+      "start": 53.0496,
+      "end": 55.5605
+    },
+    {
+      "measure": 22,
+      "start": 55.5605,
+      "end": 58.4214
+    },
+    {
+      "measure": 23,
+      "start": 58.4214,
+      "end": 60.8608
+    },
+    {
+      "measure": 24,
+      "start": 60.8608,
+      "end": 63.5109
+    },
+    {
+      "measure": 25,
+      "start": 63.5109,
+      "end": 66.1611
+    },
+    {
+      "measure": 26,
+      "start": 66.1611,
+      "end": 68.7184
+    },
+    {
+      "measure": 27,
+      "start": 68.7184,
+      "end": 71.3221
+    },
+    {
+      "measure": 28,
+      "start": 71.3221,
+      "end": 73.9722
+    },
+    {
+      "measure": 29,
+      "start": 73.9722,
+      "end": 77.0404
+    },
+    {
+      "measure": 30,
+      "start": 77.0404,
+      "end": 79.4119
+    },
+    {
+      "measure": 31,
+      "start": 79.4119,
+      "end": 81.9692
+    },
+    {
+      "measure": 32,
+      "start": 81.9692,
+      "end": 84.7122
+    },
+    {
+      "measure": 33,
+      "start": 84.7122,
+      "end": 87.2695
+    }
+  ],
+  "exercise_measures": [],
+  "diagnostics": {
+    "dtw_cost": 0.0942,
+    "matched_frames": 3864,
+    "unmatched_regions": [
+      {
+        "start": 87.2695,
+        "end": 162.92
+      }
+    ],
+    "exercise_measure_count": 0
+  }
+}

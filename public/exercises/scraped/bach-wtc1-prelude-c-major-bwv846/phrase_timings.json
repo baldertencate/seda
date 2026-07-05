@@ -1,0 +1,819 @@
+{
+  "schemaVersion": 1,
+  "alignment": {
+    "status": "ok",
+    "confidence": 0.9058,
+    "performanceDuration": 162.92
+  },
+  "phrases": [
+    {
+      "phraseNumber": 1,
+      "phraseId": "phrase-hash:b7cd1d74c8a46560",
+      "title": "score_source, bar 1",
+      "occurrences": [
+        {
+          "measureIndex": 0,
+          "measureLabel": "1",
+          "start": 1.4396,
+          "end": 5.6036,
+          "measureStart": 1.4396,
+          "measureEnd": 5.6036,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 1.4396,
+          "soundingEnd": 5.6036,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m1",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m1"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 2,
+      "phraseId": "phrase-hash:c870210a2b0e1375",
+      "title": "score_source, bar 2",
+      "occurrences": [
+        {
+          "measureIndex": 1,
+          "measureLabel": "2",
+          "start": 5.6036,
+          "end": 9.693,
+          "measureStart": 5.6036,
+          "measureEnd": 9.693,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 5.6036,
+          "soundingEnd": 9.693,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m2",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m2"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 3,
+      "phraseId": "phrase-hash:1864fc9fb1594f0e",
+      "title": "score_source, bar 3",
+      "occurrences": [
+        {
+          "measureIndex": 2,
+          "measureLabel": "3",
+          "start": 9.693,
+          "end": 13.7084,
+          "measureStart": 9.693,
+          "measureEnd": 13.7084,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 9.693,
+          "soundingEnd": 13.7084,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m3",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m3"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 4,
+      "phraseId": "phrase-hash:c5ac4ac8fb92c704",
+      "title": "score_source, bar 4",
+      "occurrences": [
+        {
+          "measureIndex": 3,
+          "measureLabel": "4",
+          "start": 13.7084,
+          "end": 17.9464,
+          "measureStart": 13.7084,
+          "measureEnd": 17.9464,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 13.7084,
+          "soundingEnd": 17.9464,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m4",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m4"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 5,
+      "phraseId": "phrase-hash:29c80c5361a051b8",
+      "title": "score_source, bar 5",
+      "occurrences": [
+        {
+          "measureIndex": 4,
+          "measureLabel": "5",
+          "start": 17.9464,
+          "end": 21.9618,
+          "measureStart": 17.9464,
+          "measureEnd": 21.9618,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 17.9464,
+          "soundingEnd": 21.9618,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m5",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m5"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 6,
+      "phraseId": "phrase-hash:53dafd8e16652740",
+      "title": "score_source, bar 6",
+      "occurrences": [
+        {
+          "measureIndex": 5,
+          "measureLabel": "6",
+          "start": 21.9618,
+          "end": 26.1999,
+          "measureStart": 21.9618,
+          "measureEnd": 26.1999,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 21.9618,
+          "soundingEnd": 26.1999,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m6",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m6"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 7,
+      "phraseId": "phrase-hash:31a2218ba224e00a",
+      "title": "score_source, bar 7",
+      "occurrences": [
+        {
+          "measureIndex": 6,
+          "measureLabel": "7",
+          "start": 26.1999,
+          "end": 30.2895,
+          "measureStart": 26.1999,
+          "measureEnd": 30.2895,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 26.1999,
+          "soundingEnd": 30.2895,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m7",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m7"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 8,
+      "phraseId": "phrase-hash:8e0e31dd594d3664",
+      "title": "score_source, bar 8",
+      "occurrences": [
+        {
+          "measureIndex": 7,
+          "measureLabel": "8",
+          "start": 30.2895,
+          "end": 34.0077,
+          "measureStart": 30.2895,
+          "measureEnd": 34.0077,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 30.2895,
+          "soundingEnd": 34.0077,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m8",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m8"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 9,
+      "phraseId": "phrase-hash:d6f75329615a600f",
+      "title": "score_source, bar 9",
+      "occurrences": [
+        {
+          "measureIndex": 8,
+          "measureLabel": "9",
+          "start": 34.0077,
+          "end": 38.9142,
+          "measureStart": 34.0077,
+          "measureEnd": 38.9142,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 34.0077,
+          "soundingEnd": 38.9142,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m9",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m9"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 10,
+      "phraseId": "phrase-hash:de1f62729779c164",
+      "title": "score_source, bar 10",
+      "occurrences": [
+        {
+          "measureIndex": 9,
+          "measureLabel": "10",
+          "start": 38.9142,
+          "end": 42.5581,
+          "measureStart": 38.9142,
+          "measureEnd": 42.5581,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 38.9142,
+          "soundingEnd": 42.5581,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m10",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m10"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 11,
+      "phraseId": "phrase-hash:cfe0ed28cdb32d8c",
+      "title": "score_source, bar 11",
+      "occurrences": [
+        {
+          "measureIndex": 10,
+          "measureLabel": "11",
+          "start": 42.5581,
+          "end": 46.6477,
+          "measureStart": 42.5581,
+          "measureEnd": 46.6477,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 42.5581,
+          "soundingEnd": 46.6477,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m11",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m11"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 12,
+      "phraseId": "phrase-hash:eca0143550aab203",
+      "title": "score_source, bar 12",
+      "occurrences": [
+        {
+          "measureIndex": 11,
+          "measureLabel": "12",
+          "start": 46.6477,
+          "end": 50.8116,
+          "measureStart": 46.6477,
+          "measureEnd": 50.8116,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 46.6477,
+          "soundingEnd": 50.8116,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m12",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m12"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 13,
+      "phraseId": "phrase-hash:cd70ec7af231c819",
+      "title": "score_source, bar 13",
+      "occurrences": [
+        {
+          "measureIndex": 12,
+          "measureLabel": "13",
+          "start": 50.8116,
+          "end": 54.9012,
+          "measureStart": 50.8116,
+          "measureEnd": 54.9012,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 50.8116,
+          "soundingEnd": 54.9012,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m13",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m13"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 14,
+      "phraseId": "phrase-hash:48573575171ebf11",
+      "title": "score_source, bar 14",
+      "occurrences": [
+        {
+          "measureIndex": 13,
+          "measureLabel": "14",
+          "start": 54.9012,
+          "end": 59.2135,
+          "measureStart": 54.9012,
+          "measureEnd": 59.2135,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 54.9012,
+          "soundingEnd": 59.2135,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m14",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m14"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 15,
+      "phraseId": "phrase-hash:45378d7a6b89f285",
+      "title": "score_source, bar 15",
+      "occurrences": [
+        {
+          "measureIndex": 14,
+          "measureLabel": "15",
+          "start": 59.2135,
+          "end": 63.3032,
+          "measureStart": 59.2135,
+          "measureEnd": 63.3032,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 59.2135,
+          "soundingEnd": 63.3032,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m15",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m15"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 16,
+      "phraseId": "phrase-hash:f441d8e2228445e3",
+      "title": "score_source, bar 16",
+      "occurrences": [
+        {
+          "measureIndex": 15,
+          "measureLabel": "16",
+          "start": 63.3032,
+          "end": 67.3184,
+          "measureStart": 63.3032,
+          "measureEnd": 67.3184,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 63.3032,
+          "soundingEnd": 67.3184,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m16",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m16"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 17,
+      "phraseId": "phrase-hash:d49f886434ae7e11",
+      "title": "score_source, bar 17",
+      "occurrences": [
+        {
+          "measureIndex": 16,
+          "measureLabel": "17",
+          "start": 67.3184,
+          "end": 71.6213,
+          "measureStart": 67.3184,
+          "measureEnd": 71.6213,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 67.3184,
+          "soundingEnd": 71.6213,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m17",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m17"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 18,
+      "phraseId": "phrase-hash:07cc4cb4b9ad12b8",
+      "title": "score_source, bar 18",
+      "occurrences": [
+        {
+          "measureIndex": 17,
+          "measureLabel": "18",
+          "start": 71.6213,
+          "end": 75.4976,
+          "measureStart": 71.6213,
+          "measureEnd": 75.4976,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 71.6213,
+          "soundingEnd": 75.4976,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m18",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m18"
+          ]
+        },
+        {
+          "measureIndex": 25,
+          "measureLabel": "26",
+          "start": 104.9416,
+          "end": 109.0312,
+          "measureStart": 104.9416,
+          "measureEnd": 109.0312,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 104.9416,
+          "soundingEnd": 109.0312,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m26",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m26"
+          ]
+        },
+        {
+          "measureIndex": 29,
+          "measureLabel": "30",
+          "start": 122.3397,
+          "end": 126.1321,
+          "measureStart": 122.3397,
+          "measureEnd": 126.1321,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 122.3397,
+          "soundingEnd": 126.1321,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m30",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m30"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 19,
+      "phraseId": "phrase-hash:c4a91e78ab7a4082",
+      "title": "score_source, bar 19",
+      "occurrences": [
+        {
+          "measureIndex": 18,
+          "measureLabel": "19",
+          "start": 75.4976,
+          "end": 80.0328,
+          "measureStart": 75.4976,
+          "measureEnd": 80.0328,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 75.4976,
+          "soundingEnd": 80.0328,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m19",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m19"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 20,
+      "phraseId": "phrase-hash:1771be8f0b0c354e",
+      "title": "score_source, bar 20",
+      "occurrences": [
+        {
+          "measureIndex": 19,
+          "measureLabel": "20",
+          "start": 80.0328,
+          "end": 83.9738,
+          "measureStart": 80.0328,
+          "measureEnd": 83.9738,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 80.0328,
+          "soundingEnd": 83.9738,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m20",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m20"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 21,
+      "phraseId": "phrase-hash:0fc4cf82d9051e65",
+      "title": "score_source, bar 21",
+      "occurrences": [
+        {
+          "measureIndex": 20,
+          "measureLabel": "21",
+          "start": 83.9738,
+          "end": 87.9892,
+          "measureStart": 83.9738,
+          "measureEnd": 87.9892,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 83.9738,
+          "soundingEnd": 87.9892,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m21",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m21"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 22,
+      "phraseId": "phrase-hash:82feba2f22b9afdd",
+      "title": "score_source, bar 22",
+      "occurrences": [
+        {
+          "measureIndex": 21,
+          "measureLabel": "22",
+          "start": 87.9892,
+          "end": 92.5643,
+          "measureStart": 87.9892,
+          "measureEnd": 92.5643,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 87.9892,
+          "soundingEnd": 92.5643,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m22",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m22"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 23,
+      "phraseId": "phrase-hash:fff17e31986d29e2",
+      "title": "score_source, bar 23",
+      "occurrences": [
+        {
+          "measureIndex": 22,
+          "measureLabel": "23",
+          "start": 92.5643,
+          "end": 96.4654,
+          "measureStart": 92.5643,
+          "measureEnd": 96.4654,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 92.5643,
+          "soundingEnd": 96.4654,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m23",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m23"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 24,
+      "phraseId": "phrase-hash:ef9c21ab00f5902c",
+      "title": "score_source, bar 24",
+      "occurrences": [
+        {
+          "measureIndex": 23,
+          "measureLabel": "24",
+          "start": 96.4654,
+          "end": 100.7034,
+          "measureStart": 96.4654,
+          "measureEnd": 100.7034,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 96.4654,
+          "soundingEnd": 100.7034,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m24",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m24"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 25,
+      "phraseId": "phrase-hash:b613f48f9fbba3e4",
+      "title": "score_source, bar 25",
+      "occurrences": [
+        {
+          "measureIndex": 24,
+          "measureLabel": "25",
+          "start": 100.7034,
+          "end": 104.9416,
+          "measureStart": 100.7034,
+          "measureEnd": 104.9416,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 100.7034,
+          "soundingEnd": 104.9416,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m25",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m25"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 26,
+      "phraseId": "phrase-hash:f4d576e0bbc144b5",
+      "title": "score_source, bar 27",
+      "occurrences": [
+        {
+          "measureIndex": 26,
+          "measureLabel": "27",
+          "start": 109.0312,
+          "end": 113.195,
+          "measureStart": 109.0312,
+          "measureEnd": 113.195,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 109.0312,
+          "soundingEnd": 113.195,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m27",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m27"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 27,
+      "phraseId": "phrase-hash:f6be6426d96fe8f3",
+      "title": "score_source, bar 28",
+      "occurrences": [
+        {
+          "measureIndex": 27,
+          "measureLabel": "28",
+          "start": 113.195,
+          "end": 117.433,
+          "measureStart": 113.195,
+          "measureEnd": 117.433,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 113.195,
+          "soundingEnd": 117.433,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m28",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m28"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 28,
+      "phraseId": "phrase-hash:58bd54209137ee5f",
+      "title": "score_source, bar 29",
+      "occurrences": [
+        {
+          "measureIndex": 28,
+          "measureLabel": "29",
+          "start": 117.433,
+          "end": 122.3397,
+          "measureStart": 117.433,
+          "measureEnd": 122.3397,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 117.433,
+          "soundingEnd": 122.3397,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m29",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m29"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 29,
+      "phraseId": "phrase-hash:76a7fae0ec93ae4a",
+      "title": "score_source, bar 31",
+      "occurrences": [
+        {
+          "measureIndex": 30,
+          "measureLabel": "31",
+          "start": 126.1321,
+          "end": 130.2218,
+          "measureStart": 126.1321,
+          "measureEnd": 130.2218,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 126.1321,
+          "soundingEnd": 130.2218,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m31",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m31"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 30,
+      "phraseId": "phrase-hash:43b2014e8eb1c1e3",
+      "title": "score_source, bar 32",
+      "occurrences": [
+        {
+          "measureIndex": 31,
+          "measureLabel": "32",
+          "start": 130.2218,
+          "end": 134.6083,
+          "measureStart": 130.2218,
+          "measureEnd": 134.6083,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 130.2218,
+          "soundingEnd": 134.6083,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m32",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m32"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 31,
+      "phraseId": "phrase-hash:6a9d84e9ddd30555",
+      "title": "score_source, bar 33",
+      "occurrences": [
+        {
+          "measureIndex": 32,
+          "measureLabel": "33",
+          "start": 134.6083,
+          "end": 138.6979,
+          "measureStart": 134.6083,
+          "measureEnd": 138.6979,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 134.6083,
+          "soundingEnd": 138.6979,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m33",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m33"
+          ]
+        }
+      ]
+    },
+    {
+      "phraseNumber": 32,
+      "phraseId": "phrase-hash:423f69d4cdec95d8",
+      "title": "score_source, bar 34",
+      "occurrences": [
+        {
+          "measureIndex": 33,
+          "measureLabel": "34",
+          "start": 138.6979,
+          "end": 142.7875,
+          "measureStart": 138.6979,
+          "measureEnd": 142.7875,
+          "soundStartBeat": 0.0,
+          "soundEndBeat": 4.0,
+          "soundingStart": 138.6979,
+          "soundingEnd": 142.7875,
+          "measureDurationBeats": 4.0,
+          "sourceRefId": "notation-ref:phrase:286535dfb99c:m34",
+          "sourceNotes": [
+            "originalPhraseId: phrase:286535dfb99c:m34"
+          ],
+          "timingSource": "fallback-after-last-aligned-measure"
+        }
+      ]
+    }
+  ],
+  "missingAlignmentFallbacks": [
+    {
+      "phraseNumber": 32,
+      "error": "no aligned measure timing for measureIndex=33, measureLabel=34"
+    }
+  ]
+}

@@ -100,3 +100,48 @@ export type PitchDirectionQuestion = {
   options: PitchDirectionOption[]
   correctOptionIndex: number
 }
+
+export type SolfegeOption = {
+  midiNote: number
+  name: string
+  label: string
+}
+
+export type SolfegeQuestion = {
+  id: string
+  reference: SolfegeOption
+  target: SolfegeOption
+  options: SolfegeOption[]
+  correctOptionIndex: number
+}
+
+export type ScaleQuality = 'major' | 'minor'
+
+export type ScaleOption = {
+  quality: ScaleQuality
+  label: string
+}
+
+export type ScaleQuestion = {
+  id: string
+  tonic: number
+  scale: number[]
+  target: ScaleOption
+  options: ScaleOption[]
+  correctOptionIndex: number
+}
+
+export type NamedScaleOption = {
+  tonic: number
+  tonicName: string
+  label: string
+  quality: ScaleQuality
+}
+
+export type NamedScaleQuestion = {
+  id: string
+  scale: number[]
+  target: NamedScaleOption
+  options: NamedScaleOption[]
+  correctOptionIndex: number
+}
