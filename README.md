@@ -1,4 +1,28 @@
-# React + TypeScript + Vite
+# Ear Trainer
+
+Mobile-first musical ear-training PWA built with React, TypeScript, Vite,
+VexFlow, and Tone.js.
+
+## PDMX MusicXML Corpus
+
+The repo includes a reproducible pipeline for downloading the PDMX MusicXML
+assets and building the deterministic 600-piece corpus used for exercise
+generation experiments.
+
+From the repository root:
+
+```bash
+bash scripts/pdmx_corpus/prepare_pdmx_corpus.sh
+```
+
+The pipeline installs its own Python dependencies into `data/pdmx/.venv`,
+downloads and verifies `PDMX.csv` plus `mxl.tar.gz`, extracts the MXL files, and
+builds a 600-piece corpus with seed `42`.
+
+Full instructions live in
+[scripts/pdmx_corpus/README.md](scripts/pdmx_corpus/README.md).
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
